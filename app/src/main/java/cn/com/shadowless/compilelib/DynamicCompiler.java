@@ -1,6 +1,7 @@
 package cn.com.shadowless.compilelib;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.lifecycle.LifecycleOwner;
 
@@ -30,11 +31,14 @@ import io.reactivex.schedulers.Schedulers;
  * @author sHadowLess
  */
 public class DynamicCompiler {
+
+    private final String TAG = DynamicCompiler.class.getSimpleName();
+
     private final Context context;
 
     private final String dexFilePath;
 
-    private final String javaFileName;
+    private final String fileName;
 
     private final String classFileName;
 
@@ -59,7 +63,7 @@ public class DynamicCompiler {
      *
      * @param context               the context
      * @param dexFilePath           the dex file path
-     * @param javaFileName          the java file name
+     * @param fileName              the file name
      * @param classFileName         the class file name
      * @param dexFileName           the dex file name
      * @param absoluteClsName       the absolute cls name
@@ -67,10 +71,10 @@ public class DynamicCompiler {
      * @param owner                 the owner
      * @param callBack              the call back
      */
-    public DynamicCompiler(Context context, String dexFilePath, String javaFileName, String classFileName, String dexFileName, String absoluteClsName, boolean isGenerateCompileInfo, LifecycleOwner owner, ResultCallBack callBack) {
+    public DynamicCompiler(Context context, String dexFilePath, String fileName, String classFileName, String dexFileName, String absoluteClsName, boolean isGenerateCompileInfo, LifecycleOwner owner, ResultCallBack callBack) {
         this.context = context;
         this.dexFilePath = dexFilePath;
-        this.javaFileName = javaFileName;
+        this.fileName = fileName;
         this.classFileName = classFileName;
         this.dexFileName = dexFileName;
         this.absoluteClsName = absoluteClsName;
@@ -98,7 +102,7 @@ public class DynamicCompiler {
                         "第" +
                         location.getColumnNumber() +
                         "列";
-                callBack.getCompileInfo(builder);
+                printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, builder.toString());
             });
             compiler.setWarningHandler((s, s1, location) -> {
                 String builder = "警告信息：" +
@@ -116,7 +120,7 @@ public class DynamicCompiler {
                         "第" +
                         location.getColumnNumber() +
                         "列";
-                callBack.getCompileInfo(builder);
+                printCompileInfo(Statue.COMPILE_JAVA_WARNING, 1, builder.toString());
             });
         } else {
             compiler.setDebuggingInformation(false, false, false);
@@ -141,7 +145,7 @@ public class DynamicCompiler {
 
         private String dexFilePath;
 
-        private String javaFileName;
+        private String fileName;
 
         private String classFileName;
 
@@ -177,16 +181,17 @@ public class DynamicCompiler {
             return this;
         }
 
+
         /**
-         * Java file name dynamic compiler builder.
+         * File name dynamic compiler builder.
          *
-         * @param javaFileName the java file name
+         * @param fileName the file name
          * @return the dynamic compiler builder
          */
-        public DynamicCompilerBuilder javaFileName(String javaFileName) {
-            this.javaFileName = javaFileName;
-            this.classFileName = javaFileName + ".class";
-            this.dexFileName = javaFileName + ".dex";
+        public DynamicCompilerBuilder dexFileName(String fileName) {
+            this.fileName = fileName;
+            this.classFileName = fileName + ".class";
+            this.dexFileName = fileName + ".dex";
             return this;
         }
 
@@ -240,7 +245,7 @@ public class DynamicCompiler {
          * @return the net utils
          */
         public DynamicCompiler build() {
-            return new DynamicCompiler(this.context, this.dexFilePath, this.javaFileName, this.classFileName, this.dexFileName, this.absoluteClsName, this.isGenerateCompileInfo, this.owner, this.callBack);
+            return new DynamicCompiler(this.context, this.dexFilePath, this.fileName, this.classFileName, this.dexFileName, this.absoluteClsName, this.isGenerateCompileInfo, this.owner, this.callBack);
         }
     }
 
@@ -256,12 +261,12 @@ public class DynamicCompiler {
      */
     public void compileJavaCode(String code) {
         if (checkDexExit()) {
-            loadDex(new File(dexFilePath, dexFileName), new File(opDexCachePath), absoluteClsName);
+            loadDex(new File(dexFilePath, dexFileName), new File(opDexCachePath), absoluteClsName, callBack);
             return;
         }
         Observable.create(emitter -> {
                     try {
-                        compiler.cook(javaFileName, new StringReader(code));
+                        compiler.cook(fileName, new StringReader(code));
                         emitter.onNext(new Object());
                         emitter.onComplete();
                     } catch (Exception e) {
@@ -275,7 +280,7 @@ public class DynamicCompiler {
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        printCompileInfo("开始编译java代码");
+                        printCompileInfo(Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
                     }
 
                     @Override
@@ -285,12 +290,12 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo("编译错误：" + e.getMessage());
+                        printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        printCompileInfo("编译java代码完成");
+                        printCompileInfo(Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
                         writeClassCode();
                     }
                 });
@@ -304,7 +309,7 @@ public class DynamicCompiler {
      */
     public void compileJavaCode(File codeFile, String format) {
         if (checkDexExit()) {
-            loadDex(new File(dexFilePath, dexFileName), new File(opDexCachePath), absoluteClsName);
+            loadDex(new File(dexFilePath, dexFileName), new File(opDexCachePath), absoluteClsName, callBack);
             return;
         }
         Observable.create(emitter -> {
@@ -323,7 +328,7 @@ public class DynamicCompiler {
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        printCompileInfo("开始编译java代码");
+                        printCompileInfo(Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
                     }
 
                     @Override
@@ -333,12 +338,12 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo("编译错误：" + e.getMessage());
+                        printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        printCompileInfo("编译java代码完成");
+                        printCompileInfo(Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
                         writeClassCode();
                     }
                 });
@@ -347,7 +352,7 @@ public class DynamicCompiler {
     /**
      * Write class code.
      */
-    public void writeClassCode() {
+    private void writeClassCode() {
         Observable.create((ObservableOnSubscribe<Boolean>) emitter -> {
                     try {
                         ClassFile[] classFiles = compiler.getClassFiles();
@@ -370,7 +375,7 @@ public class DynamicCompiler {
                 .subscribe(new Observer<Boolean>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        printCompileInfo("开始写入class文件");
+                        printCompileInfo(Statue.WRITE_CLASS_START, 1, "开始写入class文件");
                     }
 
                     @Override
@@ -380,12 +385,12 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo("写入class文件错误：" + e.getMessage());
+                        printCompileInfo(Statue.WRITE_CLASS_ERROR, 2, "写入class文件错误：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        printCompileInfo("写入class文件完成");
+                        printCompileInfo(Statue.WRITE_CLASS_FINISH, 1, "写入class文件完成");
                         compileDex(
                                 new File(dexFilePath, dexFileName),
                                 new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName));
@@ -400,7 +405,7 @@ public class DynamicCompiler {
      * @param classFile the class file
      */
     public void compileDex(File dexFile, File classFile) {
-        Observable.create((ObservableOnSubscribe<Object>) emitter -> {
+        Observable.create(emitter -> {
                     try {
                         ClassLoader loader = DynamicCompiler.class.getClassLoader();
                         if (loader == null) {
@@ -423,7 +428,7 @@ public class DynamicCompiler {
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        printCompileInfo("开始编译dex文件");
+                        printCompileInfo(Statue.COMPILE_DEX_START, 1, "开始编译dex文件");
                     }
 
                     @Override
@@ -433,13 +438,13 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo("编译错误：" + e.getMessage());
+                        printCompileInfo(Statue.COMPILE_DEX_ERROR, 2, "编译错误：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        printCompileInfo("编译dex文件完成");
-                        loadDex(dexFile, new File(opDexCachePath), absoluteClsName);
+                        printCompileInfo(Statue.COMPILE_DEX_FINISH, 1, "编译dex文件完成");
+                        loadDex(dexFile, new File(opDexCachePath), absoluteClsName, callBack);
                     }
                 });
     }
@@ -451,7 +456,7 @@ public class DynamicCompiler {
      * @param optimizeDexPath the optimize dex path
      * @param absoluteClsName the absolute cls name
      */
-    public void loadDex(File dexFile, File optimizeDexPath, String absoluteClsName) {
+    public void loadDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack) {
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
                     try {
                         DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), optimizeDexPath.getAbsolutePath(), null, DynamicCompiler.class.getClassLoader());
@@ -469,7 +474,7 @@ public class DynamicCompiler {
                 .subscribe(new Observer<Class<?>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
-                        printCompileInfo("开始加载dex文件");
+                        printCompileInfo(Statue.LOAD_DEX_START, 1, "开始加载dex文件");
                     }
 
                     @Override
@@ -484,19 +489,29 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo("编译错误：" + e.getMessage());
+                        printCompileInfo(Statue.LOAD_DEX_ERROR, 2, "编译错误：" + e.getMessage());
                     }
 
                     @Override
                     public void onComplete() {
-                        printCompileInfo("加载dex文件成功");
+                        printCompileInfo(Statue.LOAD_DEX_FINISH, 1, "加载dex文件成功");
                     }
                 });
     }
 
-    private void printCompileInfo(String info) {
+    private void printCompileInfo(Statue statue, int level, String info) {
+        callBack.getCompileStatue(statue);
         if (isGenerateCompileInfo) {
-            callBack.getCompileInfo(info);
+            switch (level) {
+                case 1:
+                    Log.i(TAG, info);
+                    break;
+                case 2:
+                    Log.e(TAG, info);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -523,15 +538,78 @@ public class DynamicCompiler {
          * Gets class.
          *
          * @param cls the cls
-         * @throws NoSuchMethodException the no such method exception
+         * @throws NoSuchMethodException     the no such method exception
+         * @throws InvocationTargetException the invocation target exception
+         * @throws IllegalAccessException    the illegal access exception
+         * @throws InstantiationException    the instantiation exception
          */
         void getClass(Class<?> cls) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException;
 
         /**
          * Gets error info.
          *
-         * @param info the info
+         * @param statue the statue
          */
-        void getCompileInfo(String info);
+        void getCompileStatue(Statue statue);
+    }
+
+    /**
+     * The enum Statue.
+     */
+    public enum Statue {
+
+        /**
+         * Compile java start statue.
+         */
+        COMPILE_JAVA_START,
+        /**
+         * Compile java error statue.
+         */
+        COMPILE_JAVA_ERROR,
+        /**
+         * Compile java warning statue.
+         */
+        COMPILE_JAVA_WARNING,
+        /**
+         * Compile java finish statue.
+         */
+        COMPILE_JAVA_FINISH,
+        /**
+         * Write class start statue.
+         */
+        WRITE_CLASS_START,
+        /**
+         * Write class error statue.
+         */
+        WRITE_CLASS_ERROR,
+        /**
+         * Write class finish statue.
+         */
+        WRITE_CLASS_FINISH,
+        /**
+         * Compile dex start statue.
+         */
+        COMPILE_DEX_START,
+        /**
+         * Compile dex error statue.
+         */
+        COMPILE_DEX_ERROR,
+        /**
+         * Compile dex finish statue.
+         */
+        COMPILE_DEX_FINISH,
+        /**
+         * Load dex start statue.
+         */
+        LOAD_DEX_START,
+        /**
+         * Load dex error statue.
+         */
+        LOAD_DEX_ERROR,
+        /**
+         * Load dex finish statue.
+         */
+        LOAD_DEX_FINISH
+
     }
 }
