@@ -81,6 +81,8 @@ b、远程仓库引入
                 .context(Context context)
                 //生命周期监听
                 .lifecycle(LifecycleOwner owner)
+                //是否合并Dex（仅对使用compileJavaCode时有效）
+                .isMergeDex(true)
                 //是否打印编译日志
                 .isGenerateCompileInfo(boolean isPrint)
                 //编译完成的dex的文件名
@@ -104,8 +106,14 @@ b、远程仓库引入
       compilerDex.compileJavaCode(String code);
       //编译Java文件，获取dex中的class
       compilerDex.compileJavaCode(File code, String format);
+      //删除输出Dex路径下的所有dex文件
+      compilerDex.deleteAllDex();
+      //删除输出Dex路径下的指定文件名的dex文件
+      compilerDex.deleteDexFromName();
       //已有class文件，编译dex文件，并在已设置的结果回调接口获取dex中的class
-      compilerDex.compileDex(File dexFile, File classFile);
+      compilerDex.compileDex(File dexFile, File classFile, ResultCallBack callBack);
       //已有dex文件，加载dex文件并获取dex中的class
       compilerDex.loadDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack);
+      //已有dex文件，合并且自动加载dex文件并获取dex中的class
+      compilerDex.mergeDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack);
 ```
