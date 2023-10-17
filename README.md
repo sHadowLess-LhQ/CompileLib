@@ -8,7 +8,7 @@
 
 以前有这么个需求是要动态变化按钮的点击事件
 
-一想这不就一热更新的事情嘛，结果说不能有文件，就给你一段代码字符串
+一想这不就一热更新的事情嘛，结果说尽量不能有文件，最好就一段代码字符串就能用
 
 然后想起上学时用的某个可以在安卓设备上写安卓代码的APP后，掏了下，发现它内部是用的Sun和Eclipse的代码编译库。
 
@@ -26,7 +26,17 @@
 
 至此，封装处理了下，这个库就完成了。
 
-#### 安装教程
+### 注意
+
+Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用
+
+Dialog字符串代码可以编译，且正常调用show显示
+
+View.OnClickListener实现类字符串代码可以编译，且正常设置给控件使用
+
+其他还有什么代码编译不出暂时未知。
+
+### 安装教程
 
 Step 1. 添加仓库地址和配置
 
@@ -111,6 +121,7 @@ b、远程仓库引入
       //删除输出Dex路径下的指定文件名的dex文件
       compilerDex.deleteDexFromName();
       //已有class文件，编译dex文件，并在已设置的结果回调接口获取dex中的class
+      //classFile可以设置文件夹，编译多个class文件为一个dex
       compilerDex.compileDex(File dexFile, File classFile, ResultCallBack callBack);
       //已有dex文件，加载dex文件并获取dex中的class
       compilerDex.loadDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack);
