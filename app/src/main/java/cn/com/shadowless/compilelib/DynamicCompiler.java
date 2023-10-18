@@ -20,7 +20,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
@@ -287,10 +289,10 @@ public class DynamicCompiler {
     public void compileJavaCode(String code) {
         if (checkDexExit()) {
             if (isMergeDex) {
-                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, absoluteClsName, callBack);
+                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, callBack);
                 return;
             }
-            loadDex(new File(dexFilePath, dexFileName), opDexCachePath, absoluteClsName, callBack);
+            loadDex(new File(dexFilePath, dexFileName), opDexCachePath,  callBack);
             return;
         }
         Observable.create(emitter -> {
@@ -339,10 +341,10 @@ public class DynamicCompiler {
     public void compileJavaCode(File codeFile, String format) {
         if (checkDexExit()) {
             if (isMergeDex) {
-                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, absoluteClsName, callBack);
+                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, callBack);
                 return;
             }
-            loadDex(new File(dexFilePath, dexFileName), opDexCachePath, absoluteClsName, callBack);
+            loadDex(new File(dexFilePath, dexFileName), opDexCachePath,  callBack);
             return;
         }
         Observable.create(emitter -> {
@@ -477,9 +479,9 @@ public class DynamicCompiler {
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.COMPILE_DEX_FINISH, 1, "编译dex文件完成");
                         if (isMergeDex) {
-                            mergeDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                            mergeDex(dexFile, opDexCachePath, callBack);
                         } else {
-                            loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                            loadDex(dexFile, opDexCachePath, callBack);
                         }
                     }
                 });
@@ -488,12 +490,11 @@ public class DynamicCompiler {
     /**
      * Merge dex.
      *
-     * @param dexFile         the dex file
-     * @param opDexCachePath  the op dex cache path
-     * @param absoluteClsName the absolute cls name
-     * @param callBack        the call back
+     * @param dexFile        the dex file
+     * @param opDexCachePath the op dex cache path
+     * @param callBack       the call back
      */
-    public void mergeDex(File dexFile, String opDexCachePath, String absoluteClsName, ResultCallBack callBack) {
+    public void mergeDex(File dexFile, String opDexCachePath, ResultCallBack callBack) {
         Observable.create(emitter -> {
                     try {
                         ClassLoader loader = DynamicCompiler.class.getClassLoader();
@@ -544,7 +545,7 @@ public class DynamicCompiler {
                     @Override
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.MERGE_DEX_FINISH, 1, "合并dex文件完成");
-                        loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                        loadDex(dexFile, opDexCachePath, callBack);
                     }
                 });
     }
@@ -554,10 +555,9 @@ public class DynamicCompiler {
      *
      * @param dexFile         the dex file
      * @param optimizeDexPath the optimize dex path
-     * @param absoluteClsName the absolute cls name
      * @param callBack        the call back
      */
-    public void loadDex(File dexFile, String optimizeDexPath, String absoluteClsName, ResultCallBack callBack) {
+    public void loadDex(File dexFile, String optimizeDexPath, ResultCallBack callBack) {
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
                     try {
                         DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), optimizeDexPath, null, DynamicCompiler.class.getClassLoader());
@@ -613,7 +613,7 @@ public class DynamicCompiler {
     }
 
     private Object combineArray(Object firstArray, Object secondArray) {
-        List<DexFile> list = new ArrayList<>();
+        Set<DexFile> list = new HashSet<>();
         Object[] parentDexList = (Object[]) firstArray;
         Object[] childDexList = (Object[]) secondArray;
         for (int i = 0; i < childDexList.length; i++) {
@@ -623,7 +623,6 @@ public class DynamicCompiler {
                 DexFile parentDexFile = getDexFile(parentDexList[j]);
                 String parentDexFileName = parentDexFile.getName();
                 if (TextUtils.equals(childDexFileName, parentDexFileName)) {
-                    list.clear();
                     break;
                 } else {
                     list.add(childDexFile);
