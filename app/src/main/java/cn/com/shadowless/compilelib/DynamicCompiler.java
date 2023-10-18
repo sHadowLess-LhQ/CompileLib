@@ -178,10 +178,17 @@ public class DynamicCompiler {
          * @param fileName the file name
          * @return the dynamic compiler builder
          */
-        public DynamicCompilerBuilder dexFileName(String fileName) {
-            this.fileName = fileName;
-            this.classFileName = fileName + ".class";
-            this.dexFileName = fileName + ".dex";
+        public DynamicCompilerBuilder fileName(String fileName) {
+            int index = fileName.lastIndexOf(".");
+            if (index != -1) {
+                this.fileName = fileName.substring(index + 1);
+                this.classFileName = this.fileName + ".class";
+                this.dexFileName = fileName;
+            } else {
+                this.fileName = fileName;
+                this.classFileName = fileName + ".class";
+                this.dexFileName = fileName + ".dex";
+            }
             return this;
         }
 
@@ -437,7 +444,7 @@ public class DynamicCompiler {
     /**
      * Compile dex.
      *
-     * @param callBack  the call back
+     * @param callBack the call back
      */
     public void compileDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);

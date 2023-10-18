@@ -95,8 +95,10 @@ b、远程仓库引入
                 .isMergeDex(true)
                 //是否打印编译日志
                 .isGenerateCompileInfo(boolean isPrint)
-                //编译完成的dex的文件名
-                .dexFileName(String fileName)
+                //编译的文件名
+                //可以填入xx.class或者xx.dex或者xx.apk
+                //内部会自动处理，如果使用compileDex，class文件名和填入的要一致，其他类型类推
+                .fileName(String fileName)
                 //输出dex文件的路径
                 .dexFilePath(String dexFilePath)
                 //需要加载的完整类名
