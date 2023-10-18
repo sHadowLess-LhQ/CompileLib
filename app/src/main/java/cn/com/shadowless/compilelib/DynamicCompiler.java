@@ -429,7 +429,7 @@ public class DynamicCompiler {
                     @Override
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.WRITE_CLASS_FINISH, 1, "写入class文件完成");
-                        compileDex(new File(dexFilePath, dexFileName), new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName), callBack);
+                        compileDex(callBack);
                     }
                 });
     }
@@ -437,11 +437,11 @@ public class DynamicCompiler {
     /**
      * Compile dex.
      *
-     * @param dexFile   the dex file
-     * @param classFile the class file
      * @param callBack  the call back
      */
-    public void compileDex(File dexFile, File classFile, ResultCallBack callBack) {
+    public void compileDex(ResultCallBack callBack) {
+        File dexFile = new File(dexFilePath, dexFileName);
+        File classFile = new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName);
         Observable.create(emitter -> {
                     try {
                         ClassLoader loader = getLocalClassLoader();
