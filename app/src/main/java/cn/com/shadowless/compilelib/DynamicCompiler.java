@@ -28,6 +28,7 @@ import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
 import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -68,6 +69,8 @@ public class DynamicCompiler {
     private final boolean isMergeDex;
 
     private final LifecycleOwner owner;
+
+    private DexClassLoader mergerClassLoader;
 
     /**
      * Instantiates a new Dynamic compiler.
@@ -441,10 +444,7 @@ public class DynamicCompiler {
     public void compileDex(File dexFile, File classFile, ResultCallBack callBack) {
         Observable.create(emitter -> {
                     try {
-                        ClassLoader loader = DynamicCompiler.class.getClassLoader();
-                        if (loader == null) {
-                            loader = context.getClassLoader();
-                        }
+                        ClassLoader loader = getLocalClassLoader();
                         Class<?> javacClazz = loader.loadClass("com.android.dx.command.Main");
                         Method method = javacClazz.getMethod("main", String[].class);
                         String[] params = new String[]{"--dex", "--no-strict", "--output=" + dexFile.getAbsolutePath(), classFile.getAbsolutePath()};
@@ -490,50 +490,50 @@ public class DynamicCompiler {
     /**
      * Merge dex.
      *
-     * @param callBack       the call back
+     * @param callBack the call back
      */
     public void mergeDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);
-        Observable.create(emitter -> {
-                    try {
-                        ClassLoader loader = DynamicCompiler.class.getClassLoader();
-                        if (loader == null) {
-                            loader = context.getClassLoader();
+        Observable.create(new ObservableOnSubscribe<DexClassLoader>() {
+                    @Override
+                    public void subscribe(ObservableEmitter<DexClassLoader> emitter) throws Exception {
+                        try {
+                            ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+                            DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
+                            Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                            pathListField.setAccessible(true);
+                            Object pathList = pathListField.get(dexClassLoader);
+                            Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
+                            dexElementsField.setAccessible(true);
+                            Object dexElements = dexElementsField.get(pathList);
+                            pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                            pathListField.setAccessible(true);
+                            Object appPathList = pathListField.get(loader);
+                            dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
+                            dexElementsField.setAccessible(true);
+                            Object appDexElements = dexElementsField.get(appPathList);
+                            Object newArray = DynamicCompiler.this.combineArray(appDexElements, dexElements);
+                            dexElementsField.set(appPathList, newArray);
+                            emitter.onNext(dexClassLoader);
+                            emitter.onComplete();
+                        } catch (Exception e) {
+                            emitter.onError(e);
                         }
-                        DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
-                        Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                        pathListField.setAccessible(true);
-                        Object pathList = pathListField.get(dexClassLoader);
-                        Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
-                        dexElementsField.setAccessible(true);
-                        Object dexElements = dexElementsField.get(pathList);
-                        pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                        pathListField.setAccessible(true);
-                        Object appPathList = pathListField.get(loader);
-                        dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
-                        dexElementsField.setAccessible(true);
-                        Object appDexElements = dexElementsField.get(appPathList);
-                        Object newArray = combineArray(appDexElements, dexElements);
-                        dexElementsField.set(appPathList, newArray);
-                        emitter.onNext(new Object());
-                        emitter.onComplete();
-                    } catch (Exception e) {
-                        emitter.onError(e);
                     }
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .as(RxLife.as(owner))
-                .subscribe(new Observer<Object>() {
+                .subscribe(new Observer<DexClassLoader>() {
                     @Override
                     public void onSubscribe(Disposable d) {
                         printCompileInfo(callBack, Statue.MERGE_DEX_START, 1, "开始合并dex文件");
                     }
 
                     @Override
-                    public void onNext(Object o) {
-
+                    public void onNext(DexClassLoader dexClassLoader) {
+                        mergerClassLoader = dexClassLoader;
                     }
 
                     @Override
@@ -552,14 +552,16 @@ public class DynamicCompiler {
     /**
      * Load dex class.
      *
-     * @param callBack        the call back
+     * @param callBack the call back
      */
     public void loadDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
                     try {
-                        DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, DynamicCompiler.class.getClassLoader());
-                        Class<?> temp = cls.loadClass(absoluteClsName);
+                        if (mergerClassLoader == null) {
+                            mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
+                        }
+                        Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
                         emitter.onNext(temp);
                         emitter.onComplete();
                     } catch (Exception e) {
@@ -675,6 +677,14 @@ public class DynamicCompiler {
             e.printStackTrace();
         }
         return false;
+    }
+
+    private ClassLoader getLocalClassLoader() {
+        ClassLoader loader = DynamicCompiler.class.getClassLoader();
+        if (loader == null) {
+            loader = context.getClassLoader();
+        }
+        return loader;
     }
 
     /**
