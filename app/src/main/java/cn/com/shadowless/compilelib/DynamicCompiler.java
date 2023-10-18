@@ -35,7 +35,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
 /**
- * The type Dynamic compiler.
+ * 动态编译
  *
  * @author sHadowLess
  */
@@ -289,10 +289,10 @@ public class DynamicCompiler {
     public void compileJavaCode(String code) {
         if (checkDexExit()) {
             if (isMergeDex) {
-                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, callBack);
+                mergeDex(callBack);
                 return;
             }
-            loadDex(new File(dexFilePath, dexFileName), opDexCachePath,  callBack);
+            loadDex(callBack);
             return;
         }
         Observable.create(emitter -> {
@@ -341,10 +341,10 @@ public class DynamicCompiler {
     public void compileJavaCode(File codeFile, String format) {
         if (checkDexExit()) {
             if (isMergeDex) {
-                mergeDex(new File(dexFilePath, dexFileName), opDexCachePath, callBack);
+                mergeDex(callBack);
                 return;
             }
-            loadDex(new File(dexFilePath, dexFileName), opDexCachePath,  callBack);
+            loadDex(callBack);
             return;
         }
         Observable.create(emitter -> {
@@ -479,9 +479,9 @@ public class DynamicCompiler {
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.COMPILE_DEX_FINISH, 1, "编译dex文件完成");
                         if (isMergeDex) {
-                            mergeDex(dexFile, opDexCachePath, callBack);
+                            mergeDex(callBack);
                         } else {
-                            loadDex(dexFile, opDexCachePath, callBack);
+                            loadDex(callBack);
                         }
                     }
                 });
@@ -490,11 +490,10 @@ public class DynamicCompiler {
     /**
      * Merge dex.
      *
-     * @param dexFile        the dex file
-     * @param opDexCachePath the op dex cache path
      * @param callBack       the call back
      */
-    public void mergeDex(File dexFile, String opDexCachePath, ResultCallBack callBack) {
+    public void mergeDex(ResultCallBack callBack) {
+        File dexFile = new File(dexFilePath, dexFileName);
         Observable.create(emitter -> {
                     try {
                         ClassLoader loader = DynamicCompiler.class.getClassLoader();
@@ -545,7 +544,7 @@ public class DynamicCompiler {
                     @Override
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.MERGE_DEX_FINISH, 1, "合并dex文件完成");
-                        loadDex(dexFile, opDexCachePath, callBack);
+                        loadDex(callBack);
                     }
                 });
     }
@@ -553,14 +552,13 @@ public class DynamicCompiler {
     /**
      * Load dex class.
      *
-     * @param dexFile         the dex file
-     * @param optimizeDexPath the optimize dex path
      * @param callBack        the call back
      */
-    public void loadDex(File dexFile, String optimizeDexPath, ResultCallBack callBack) {
+    public void loadDex(ResultCallBack callBack) {
+        File dexFile = new File(dexFilePath, dexFileName);
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
                     try {
-                        DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), optimizeDexPath, null, DynamicCompiler.class.getClassLoader());
+                        DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, DynamicCompiler.class.getClassLoader());
                         Class<?> temp = cls.loadClass(absoluteClsName);
                         emitter.onNext(temp);
                         emitter.onComplete();
@@ -585,7 +583,7 @@ public class DynamicCompiler {
                         } catch (NoSuchMethodException | InvocationTargetException |
                                  IllegalAccessException | InstantiationException |
                                  ClassNotFoundException e) {
-                            throw new RuntimeException(e);
+                            printCompileInfo(callBack, Statue.GET_CLASS_ERROR, 2, "获取类错误：" + e.getMessage());
                         }
                     }
 
@@ -773,7 +771,12 @@ public class DynamicCompiler {
         /**
          * Load dex finish statue.
          */
-        LOAD_DEX_FINISH
+        LOAD_DEX_FINISH,
+
+        /**
+         * Get class error statue.
+         */
+        GET_CLASS_ERROR
 
     }
 }

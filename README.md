@@ -122,9 +122,9 @@ b、远程仓库引入
       compilerDex.deleteDexFromName();
       //已有class文件，编译dex文件，并在已设置的结果回调接口获取dex中的class
       //classFile可以设置文件夹，编译多个class文件为一个dex
-      compilerDex.compileDex(File dexFile, File classFile, ResultCallBack callBack);
+      compilerDex.compileDex(ResultCallBack callBack);
       //已有dex文件，加载dex文件并获取dex中的class
-      compilerDex.loadDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack);
+      compilerDex.loadDex(ResultCallBack callBack);
       //已有dex文件，合并且自动加载dex文件并获取dex中的class
-      compilerDex.mergeDex(File dexFile, File optimizeDexPath, String absoluteClsName, ResultCallBack callBack);
+      compilerDex.mergeDex(ResultCallBack callBack);
 ```
