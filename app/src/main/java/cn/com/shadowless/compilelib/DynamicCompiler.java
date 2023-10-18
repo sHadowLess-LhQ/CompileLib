@@ -76,6 +76,7 @@ public class DynamicCompiler {
      * @param classFileName         the class file name
      * @param dexFileName           the dex file name
      * @param absoluteClsName       the absolute cls name
+     * @param isMergeDex            the is merge dex
      * @param isGenerateCompileInfo the is generate compile info
      * @param owner                 the owner
      * @param callBack              the call back
@@ -98,11 +99,11 @@ public class DynamicCompiler {
             compiler.setDebuggingInformation(true, true, true);
             compiler.setCompileErrorHandler((s, location) -> {
                 String builder = "错误信息：" + s + "\n" + "错误文件名：" + location.getFileName() + "\n" + "错误行：" + "第" + location.getLineNumber() + "行" + "\n" + "错误列：" + "第" + location.getColumnNumber() + "列";
-                printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, builder.toString());
+                printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, builder.toString());
             });
             compiler.setWarningHandler((s, s1, location) -> {
                 String builder = "警告信息：" + s1 + "\n" + "文件名：" + location.getFileName() + "\n" + "警告行：" + "第" + location.getLineNumber() + "行" + "\n" + "警告列：" + "第" + location.getColumnNumber() + "列";
-                printCompileInfo(Statue.COMPILE_JAVA_WARNING, 1, builder.toString());
+                printCompileInfo(callBack, Statue.COMPILE_JAVA_WARNING, 1, builder.toString());
             });
         } else {
             compiler.setDebuggingInformation(false, false, false);
@@ -190,6 +191,12 @@ public class DynamicCompiler {
             return this;
         }
 
+        /**
+         * Is merge dex dynamic compiler builder.
+         *
+         * @param isMergeDex the is merge dex
+         * @return the dynamic compiler builder
+         */
         public DynamicCompilerBuilder isMergeDex(boolean isMergeDex) {
             this.isMergeDex = isMergeDex;
             return this;
@@ -287,35 +294,40 @@ public class DynamicCompiler {
             return;
         }
         Observable.create(emitter -> {
-            try {
-                compiler.cook(fileName, new StringReader(code));
-                emitter.onNext(new Object());
-                emitter.onComplete();
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Object>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
-            }
+                    try {
+                        compiler.cook(fileName, new StringReader(code));
+                        emitter.onNext(new Object());
+                        emitter.onComplete();
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
+                    }
 
-            @Override
-            public void onNext(Object o) {
+                    @Override
+                    public void onNext(Object o) {
 
-            }
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
+                    }
 
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
-                writeClassCode();
-            }
-        });
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
+                        writeClassCode();
+                    }
+                });
     }
 
     /**
@@ -334,35 +346,40 @@ public class DynamicCompiler {
             return;
         }
         Observable.create(emitter -> {
-            try {
-                compiler.cookFile(codeFile, format);
-                emitter.onNext(new Object());
-                emitter.onComplete();
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Object>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
-            }
+                    try {
+                        compiler.cookFile(codeFile, format);
+                        emitter.onNext(new Object());
+                        emitter.onComplete();
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_START, 1, "开始编译java代码");
+                    }
 
-            @Override
-            public void onNext(Object o) {
+                    @Override
+                    public void onNext(Object o) {
 
-            }
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
+                    }
 
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
-                writeClassCode();
-            }
-        });
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_FINISH, 1, "编译java代码完成");
+                        writeClassCode();
+                    }
+                });
     }
 
     /**
@@ -370,41 +387,46 @@ public class DynamicCompiler {
      */
     private void writeClassCode() {
         Observable.create((ObservableOnSubscribe<Boolean>) emitter -> {
-            try {
-                ClassFile[] classFiles = compiler.getClassFiles();
-                byte[] classBytes = classFiles[0].toByteArray();
-                boolean isSuccess = writeFileToSdCard(cachePath, classFileName, classBytes, classBytes.length, false);
-                if (isSuccess) {
-                    emitter.onNext(true);
-                    emitter.onComplete();
-                } else {
-                    emitter.onError(new RuntimeException("写入class文件失败"));
-                }
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Boolean>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.WRITE_CLASS_START, 1, "开始写入class文件");
-            }
+                    try {
+                        ClassFile[] classFiles = compiler.getClassFiles();
+                        byte[] classBytes = classFiles[0].toByteArray();
+                        boolean isSuccess = writeFileToSdCard(cachePath, classFileName, classBytes, classBytes.length, false);
+                        if (isSuccess) {
+                            emitter.onNext(true);
+                            emitter.onComplete();
+                        } else {
+                            emitter.onError(new RuntimeException("写入class文件失败"));
+                        }
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Boolean>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.WRITE_CLASS_START, 1, "开始写入class文件");
+                    }
 
-            @Override
-            public void onNext(Boolean aBoolean) {
+                    @Override
+                    public void onNext(Boolean aBoolean) {
 
-            }
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.WRITE_CLASS_ERROR, 2, "写入class文件错误：" + e.getMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.WRITE_CLASS_ERROR, 2, "写入class文件错误：" + e.getMessage());
+                    }
 
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.WRITE_CLASS_FINISH, 1, "写入class文件完成");
-                compileDex(new File(dexFilePath, dexFileName), new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName), callBack);
-            }
-        });
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.WRITE_CLASS_FINISH, 1, "写入class文件完成");
+                        compileDex(new File(dexFilePath, dexFileName), new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName), callBack);
+                    }
+                });
     }
 
     /**
@@ -412,49 +434,171 @@ public class DynamicCompiler {
      *
      * @param dexFile   the dex file
      * @param classFile the class file
+     * @param callBack  the call back
      */
     public void compileDex(File dexFile, File classFile, ResultCallBack callBack) {
         Observable.create(emitter -> {
-            try {
-                ClassLoader loader = DynamicCompiler.class.getClassLoader();
-                if (loader == null) {
-                    loader = context.getClassLoader();
-                }
-                Class<?> javacClazz = loader.loadClass("com.android.dx.command.Main");
-                Method method = javacClazz.getMethod("main", String[].class);
-                String[] params = new String[]{"--dex", "--no-strict", "--output=" + dexFile.getAbsolutePath(), classFile.getAbsolutePath()};
-                method.invoke(null, (Object) params);
-                emitter.onNext(new Object());
-                emitter.onComplete();
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Object>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.COMPILE_DEX_START, 1, "开始编译dex文件");
-            }
+                    try {
+                        ClassLoader loader = DynamicCompiler.class.getClassLoader();
+                        if (loader == null) {
+                            loader = context.getClassLoader();
+                        }
+                        Class<?> javacClazz = loader.loadClass("com.android.dx.command.Main");
+                        Method method = javacClazz.getMethod("main", String[].class);
+                        String[] params = new String[]{"--dex", "--no-strict", "--output=" + dexFile.getAbsolutePath(), classFile.getAbsolutePath()};
+                        method.invoke(null, (Object) params);
+                        emitter.onNext(new Object());
+                        emitter.onComplete();
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.COMPILE_DEX_START, 1, "开始编译dex文件");
+                    }
 
-            @Override
-            public void onNext(Object o) {
-                classFile.delete();
-            }
+                    @Override
+                    public void onNext(Object o) {
+                        classFile.delete();
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.COMPILE_DEX_ERROR, 2, "编译错误：" + e.getMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.COMPILE_DEX_ERROR, 2, "编译错误：" + e.getMessage());
+                    }
 
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.COMPILE_DEX_FINISH, 1, "编译dex文件完成");
-                if (isMergeDex) {
-                    mergeDex(dexFile, opDexCachePath, absoluteClsName, callBack);
-                } else {
-                    loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
-                }
-            }
-        });
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.COMPILE_DEX_FINISH, 1, "编译dex文件完成");
+                        if (isMergeDex) {
+                            mergeDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                        } else {
+                            loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Merge dex.
+     *
+     * @param dexFile         the dex file
+     * @param opDexCachePath  the op dex cache path
+     * @param absoluteClsName the absolute cls name
+     * @param callBack        the call back
+     */
+    public void mergeDex(File dexFile, String opDexCachePath, String absoluteClsName, ResultCallBack callBack) {
+        Observable.create(emitter -> {
+                    try {
+                        ClassLoader loader = DynamicCompiler.class.getClassLoader();
+                        if (loader == null) {
+                            loader = context.getClassLoader();
+                        }
+                        DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
+                        Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                        pathListField.setAccessible(true);
+                        Object pathList = pathListField.get(dexClassLoader);
+                        Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
+                        dexElementsField.setAccessible(true);
+                        Object dexElements = dexElementsField.get(pathList);
+                        pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                        pathListField.setAccessible(true);
+                        Object appPathList = pathListField.get(loader);
+                        dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
+                        dexElementsField.setAccessible(true);
+                        Object appDexElements = dexElementsField.get(appPathList);
+                        Object newArray = combineArray(appDexElements, dexElements);
+                        dexElementsField.set(appPathList, newArray);
+                        emitter.onNext(new Object());
+                        emitter.onComplete();
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.MERGE_DEX_START, 1, "开始合并dex文件");
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.MERGE_DEX_ERROR, 2, "合并错误：" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.MERGE_DEX_FINISH, 1, "合并dex文件完成");
+                        loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
+                    }
+                });
+    }
+
+    /**
+     * Load dex class.
+     *
+     * @param dexFile         the dex file
+     * @param optimizeDexPath the optimize dex path
+     * @param absoluteClsName the absolute cls name
+     * @param callBack        the call back
+     */
+    public void loadDex(File dexFile, String optimizeDexPath, String absoluteClsName, ResultCallBack callBack) {
+        Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
+                    try {
+                        DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), optimizeDexPath, null, DynamicCompiler.class.getClassLoader());
+                        Class<?> temp = cls.loadClass(absoluteClsName);
+                        emitter.onNext(temp);
+                        emitter.onComplete();
+                    } catch (Exception e) {
+                        emitter.onError(e);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .unsubscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .as(RxLife.as(owner))
+                .subscribe(new Observer<Class<?>>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        printCompileInfo(callBack, Statue.LOAD_DEX_START, 1, "开始加载dex文件");
+                    }
+
+                    @Override
+                    public void onNext(Class<?> cls) {
+                        try {
+                            callBack.getClass(cls);
+                        } catch (NoSuchMethodException | InvocationTargetException |
+                                 IllegalAccessException | InstantiationException |
+                                 ClassNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        printCompileInfo(callBack, Statue.LOAD_DEX_ERROR, 2, "编译错误：" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        printCompileInfo(callBack, Statue.LOAD_DEX_FINISH, 1, "加载dex文件完成");
+                    }
+                });
     }
 
     private DexFile getDexFile(Object o) {
@@ -468,7 +612,6 @@ public class DynamicCompiler {
         return null;
     }
 
-    // 合并数组的方法
     private Object combineArray(Object firstArray, Object secondArray) {
         List<DexFile> list = new ArrayList<>();
         Object[] parentDexList = (Object[]) firstArray;
@@ -506,104 +649,7 @@ public class DynamicCompiler {
         return newArray;
     }
 
-    public void mergeDex(File dexFile, String opDexCachePath, String absoluteClsName, ResultCallBack callBack) {
-        Observable.create(emitter -> {
-            try {
-                ClassLoader loader = DynamicCompiler.class.getClassLoader();
-                if (loader == null) {
-                    loader = context.getClassLoader();
-                }
-                DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
-                Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                pathListField.setAccessible(true);
-                Object pathList = pathListField.get(dexClassLoader);
-                Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
-                dexElementsField.setAccessible(true);
-                Object dexElements = dexElementsField.get(pathList);
-                pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                pathListField.setAccessible(true);
-                Object appPathList = pathListField.get(loader);
-                dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
-                dexElementsField.setAccessible(true);
-                Object appDexElements = dexElementsField.get(appPathList);
-                Object newArray = combineArray(appDexElements, dexElements);
-                dexElementsField.set(appPathList, newArray);
-                emitter.onNext(new Object());
-                emitter.onComplete();
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Object>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.MERGE_DEX_START, 1, "开始合并dex文件");
-            }
-
-            @Override
-            public void onNext(Object o) {
-
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.MERGE_DEX_ERROR, 2, "合并错误：" + e.getMessage());
-            }
-
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.MERGE_DEX_FINISH, 1, "合并dex文件完成");
-                loadDex(dexFile, opDexCachePath, absoluteClsName, callBack);
-            }
-        });
-    }
-
-    /**
-     * Load dex class.
-     *
-     * @param dexFile         the dex file
-     * @param optimizeDexPath the optimize dex path
-     * @param absoluteClsName the absolute cls name
-     * @param callBack        the call back
-     */
-    public void loadDex(File dexFile, String optimizeDexPath, String absoluteClsName, ResultCallBack callBack) {
-        Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
-            try {
-                DexClassLoader cls = new DexClassLoader(dexFile.getAbsolutePath(), optimizeDexPath, null, DynamicCompiler.class.getClassLoader());
-                Class<?> temp = cls.loadClass(absoluteClsName);
-                emitter.onNext(temp);
-                emitter.onComplete();
-            } catch (Exception e) {
-                emitter.onError(e);
-            }
-        }).subscribeOn(Schedulers.io()).unsubscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).as(RxLife.as(owner)).subscribe(new Observer<Class<?>>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-                printCompileInfo(Statue.LOAD_DEX_START, 1, "开始加载dex文件");
-            }
-
-            @Override
-            public void onNext(Class<?> cls) {
-                try {
-                    callBack.getClass(cls);
-                } catch (NoSuchMethodException | InvocationTargetException |
-                         IllegalAccessException | InstantiationException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                printCompileInfo(Statue.LOAD_DEX_ERROR, 2, "编译错误：" + e.getMessage());
-            }
-
-            @Override
-            public void onComplete() {
-                printCompileInfo(Statue.LOAD_DEX_FINISH, 1, "加载dex文件完成");
-            }
-        });
-    }
-
-    private void printCompileInfo(Statue statue, int level, String info) {
+    private void printCompileInfo(ResultCallBack callBack, Statue statue, int level, String info) {
         callBack.getCompileStatue(statue);
         if (isGenerateCompileInfo) {
             switch (level) {
@@ -642,12 +688,13 @@ public class DynamicCompiler {
          * Gets class.
          *
          * @param cls the cls
+         * @throws ClassNotFoundException    the class not found exception
          * @throws NoSuchMethodException     the no such method exception
          * @throws InvocationTargetException the invocation target exception
          * @throws IllegalAccessException    the illegal access exception
          * @throws InstantiationException    the instantiation exception
          */
-        void getClass(Class<?> cls) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException;
+        void getClass(Class<?> cls) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException;
 
         /**
          * Gets error info.
