@@ -19,8 +19,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Set;
 
 import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
@@ -618,28 +616,27 @@ public class DynamicCompiler {
     }
 
     private Object combineArray(Object firstArray, Object secondArray) {
-        Set<DexFile> list = new HashSet<>();
+        int dexSize = 0;
         Object[] parentDexList = (Object[]) firstArray;
         Object[] childDexList = (Object[]) secondArray;
-        for (int i = 0; i < childDexList.length; i++) {
-            DexFile childDexFile = getDexFile(childDexList[i]);
-            String childDexFileName = childDexFile.getName();
-            for (int j = 0; j < parentDexList.length; j++) {
-                DexFile parentDexFile = getDexFile(parentDexList[j]);
-                String parentDexFileName = parentDexFile.getName();
+        for (Object value : childDexList) {
+            String childDexFileName = getDexFile(value).getName();
+            for (Object o : parentDexList) {
+                String parentDexFileName = getDexFile(o).getName();
                 if (TextUtils.equals(childDexFileName, parentDexFileName)) {
+                    dexSize--;
                     break;
                 } else {
-                    list.add(childDexFile);
+                    dexSize++;
                 }
             }
         }
-        if (list.isEmpty()) {
+        if (dexSize == 0) {
             return firstArray;
         }
         Class<?> componentType = firstArray.getClass().getComponentType();
         int firstArrayLength = Array.getLength(firstArray);
-        int secondArrayLength = list.size();
+        int secondArrayLength = dexSize;
         int newLength = firstArrayLength + secondArrayLength;
         Object newArray = Array.newInstance(componentType, newLength);
 
