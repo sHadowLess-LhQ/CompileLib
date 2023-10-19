@@ -102,7 +102,6 @@ public class DynamicCompiler {
         this.cachePath = context.getExternalFilesDir(null).getAbsolutePath();
         this.opDexCachePath = context.getDir("opDex", Context.MODE_PRIVATE).getAbsolutePath();
         this.isGenerateCompileInfo = isGenerateCompileInfo;
-        this.isSupportBoost = VmUtils.isVmSupportTurboDex();
         if (isGenerateCompileInfo) {
             compiler.setDebuggingInformation(true, true, true);
             compiler.setCompileErrorHandler((s, location) -> {
@@ -187,6 +186,7 @@ public class DynamicCompiler {
                 this.fileName = fileName.substring(index + 1);
                 this.classFileName = this.fileName + ".class";
                 this.dexFileName = fileName;
+                isSupportBoost = VmUtils.isVmSupportTurboDex();
                 if (!ARTUtils.isInit() && isSupportBoost) {
                     ARTUtils.init(context.getApplicationContext());
                 }
