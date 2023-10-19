@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.rxjava.rxlife.RxLife;
+import com.taobao.android.dex.interpret.ARTUtils;
 
 import org.codehaus.janino.SimpleCompiler;
 import org.codehaus.janino.util.ClassFile;
@@ -19,11 +20,10 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import cn.com.shadowless.compilelib.utils.VmUtils;
 import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
@@ -72,6 +72,8 @@ public class DynamicCompiler {
 
     private DexClassLoader mergerClassLoader;
 
+    private static boolean isSupportBoost;
+
     /**
      * Instantiates a new Dynamic compiler.
      *
@@ -100,6 +102,7 @@ public class DynamicCompiler {
         this.cachePath = context.getExternalFilesDir(null).getAbsolutePath();
         this.opDexCachePath = context.getDir("opDex", Context.MODE_PRIVATE).getAbsolutePath();
         this.isGenerateCompileInfo = isGenerateCompileInfo;
+        this.isSupportBoost = VmUtils.isVmSupportTurboDex();
         if (isGenerateCompileInfo) {
             compiler.setDebuggingInformation(true, true, true);
             compiler.setCompileErrorHandler((s, location) -> {
@@ -184,6 +187,9 @@ public class DynamicCompiler {
                 this.fileName = fileName.substring(index + 1);
                 this.classFileName = this.fileName + ".class";
                 this.dexFileName = fileName;
+                if (!ARTUtils.isInit() && isSupportBoost) {
+                    ARTUtils.init(context.getApplicationContext());
+                }
             } else {
                 this.fileName = fileName;
                 this.classFileName = fileName + ".class";
@@ -506,7 +512,9 @@ public class DynamicCompiler {
                     public void subscribe(ObservableEmitter<DexClassLoader> emitter) throws Exception {
                         try {
                             ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+                            setBoost(false);
                             DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
+                            setBoost(true);
                             Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
                             pathListField.setAccessible(true);
                             Object pathList = pathListField.get(dexClassLoader);
@@ -566,7 +574,9 @@ public class DynamicCompiler {
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
                     try {
                         if (mergerClassLoader == null) {
+                            setBoost(false);
                             mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
+                            setBoost(true);
                         }
                         Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
                         emitter.onNext(temp);
@@ -692,6 +702,12 @@ public class DynamicCompiler {
             loader = context.getClassLoader();
         }
         return loader;
+    }
+
+    private void setBoost(boolean isEnable) {
+        if (isSupportBoost) {
+            ARTUtils.setIsDex2oatEnabled(isEnable);
+        }
     }
 
     /**
