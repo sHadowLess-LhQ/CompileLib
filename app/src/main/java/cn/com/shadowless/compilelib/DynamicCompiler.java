@@ -64,6 +64,8 @@ public class DynamicCompiler {
 
     private final boolean isMergeDex;
 
+    private final boolean isUpdate;
+
     private final LifecycleOwner owner;
 
     private DexClassLoader mergerClassLoader;
@@ -82,7 +84,7 @@ public class DynamicCompiler {
      * @param owner                 the owner
      * @param callBack              the call back
      */
-    public DynamicCompiler(Context context, String dexFilePath, String fileName, String classFileName, String dexFileName, String absoluteClsName, boolean isMergeDex, boolean isGenerateCompileInfo, LifecycleOwner owner, ResultCallBack callBack) {
+    public DynamicCompiler(Context context, String dexFilePath, String fileName, String classFileName, String dexFileName, String absoluteClsName, boolean isMergeDex, boolean isUpdate, boolean isGenerateCompileInfo, LifecycleOwner owner, ResultCallBack callBack) {
         this.context = context;
         this.dexFilePath = dexFilePath;
         this.fileName = fileName;
@@ -92,6 +94,7 @@ public class DynamicCompiler {
         this.callBack = callBack;
         this.owner = owner;
         this.isMergeDex = isMergeDex;
+        this.isUpdate = isUpdate;
         this.compiler = new SimpleCompiler();
         this.cachePath = context.getExternalFilesDir(null).getAbsolutePath();
         this.opDexCachePath = context.getDir("opDex", Context.MODE_PRIVATE).getAbsolutePath();
@@ -138,6 +141,8 @@ public class DynamicCompiler {
         private String absoluteClsName;
 
         private boolean isMergeDex;
+
+        private boolean isUpdate;
 
         private boolean isGenerateCompileInfo;
 
@@ -210,6 +215,11 @@ public class DynamicCompiler {
             return this;
         }
 
+        public DynamicCompilerBuilder isUpdate(boolean isUpdate) {
+            this.isUpdate = isUpdate;
+            return this;
+        }
+
         /**
          * Is generate compile info dynamic compiler builder.
          *
@@ -249,12 +259,17 @@ public class DynamicCompiler {
          * @return the net utils
          */
         public DynamicCompiler build() {
-            return new DynamicCompiler(this.context, this.dexFilePath, this.fileName, this.classFileName, this.dexFileName, this.absoluteClsName, this.isMergeDex, this.isGenerateCompileInfo, this.owner, this.callBack);
+            return new DynamicCompiler(this.context, this.dexFilePath, this.fileName, this.classFileName, this.dexFileName, this.absoluteClsName, this.isMergeDex, this.isUpdate, this.isGenerateCompileInfo, this.owner, this.callBack);
         }
     }
 
     private boolean checkDexExit() {
         File file = new File(dexFilePath, dexFileName);
+        return file.exists();
+    }
+
+    private boolean checkClassExit() {
+        File file = new File(dexFilePath, classFileName);
         return file.exists();
     }
 
@@ -293,6 +308,9 @@ public class DynamicCompiler {
      * @param code the code
      */
     public void compileJavaCode(String code) {
+        if (isUpdate) {
+            deleteDexFromName(dexFileName);
+        }
         if (checkDexExit()) {
             if (isMergeDex) {
                 mergeDex(callBack);
@@ -345,6 +363,9 @@ public class DynamicCompiler {
      * @param format   the format
      */
     public void compileJavaCode(File codeFile, String format) {
+        if (isUpdate) {
+            deleteDexFromName(dexFileName);
+        }
         if (checkDexExit()) {
             if (isMergeDex) {
                 mergeDex(callBack);
@@ -443,8 +464,23 @@ public class DynamicCompiler {
      * @param callBack the call back
      */
     public void compileDex(ResultCallBack callBack) {
+        if (!checkClassExit()) {
+            printCompileInfo(callBack, Statue.COMPILE_DEX_ERROR, 2, "需要编译的class文件不存在");
+            return;
+        }
+        if (!isUpdate) {
+            if (checkDexExit()) {
+                if (isMergeDex) {
+                    mergeDex(callBack);
+                    return;
+                }
+                loadDex(callBack);
+                return;
+            }
+        }
+        deleteDexFromName(dexFileName);
         File dexFile = new File(dexFilePath, dexFileName);
-        File classFile = new File(context.getExternalFilesDir(null).getAbsolutePath(), classFileName);
+        File classFile = new File(dexFilePath, classFileName);
         Observable.create(emitter -> {
                     try {
                         ClassLoader loader = getLocalClassLoader();
