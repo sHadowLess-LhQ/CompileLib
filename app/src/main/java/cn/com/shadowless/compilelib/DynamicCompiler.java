@@ -177,7 +177,7 @@ public class DynamicCompiler {
         public DynamicCompilerBuilder fileName(String fileName) {
             int index = fileName.lastIndexOf(".");
             if (index != -1) {
-                this.fileName = fileName.substring(index + 1);
+                this.fileName = fileName.substring(0, index);
                 this.classFileName = this.fileName + ".class";
                 this.dexFileName = fileName;
             } else {
@@ -565,6 +565,7 @@ public class DynamicCompiler {
                             mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
                         }
                         Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
+                        ClassManager.INSTANCE.addInitClass(absoluteClsName, temp);
                         emitter.onNext(temp);
                         emitter.onComplete();
                     } catch (Exception e) {
@@ -616,27 +617,22 @@ public class DynamicCompiler {
     }
 
     private Object combineArray(Object firstArray, Object secondArray) {
-        int dexSize = 0;
+        boolean isDuplicate = false;
         Object[] parentDexList = (Object[]) firstArray;
         Object[] childDexList = (Object[]) secondArray;
-        for (Object value : childDexList) {
-            String childDexFileName = getDexFile(value).getName();
-            for (Object o : parentDexList) {
-                String parentDexFileName = getDexFile(o).getName();
-                if (TextUtils.equals(childDexFileName, parentDexFileName)) {
-                    dexSize--;
-                    break;
-                } else {
-                    dexSize++;
-                }
+        String childDexFileName = getDexFile(childDexList[0]).getName();
+        for (Object o : parentDexList) {
+            String parentDexFileName = getDexFile(o).getName();
+            if (TextUtils.equals(childDexFileName, parentDexFileName)) {
+                isDuplicate = true;
             }
         }
-        if (dexSize == 0) {
+        if (isDuplicate) {
             return firstArray;
         }
         Class<?> componentType = firstArray.getClass().getComponentType();
         int firstArrayLength = Array.getLength(firstArray);
-        int secondArrayLength = dexSize;
+        int secondArrayLength = Array.getLength(secondArray);
         int newLength = firstArrayLength + secondArrayLength;
         Object newArray = Array.newInstance(componentType, newLength);
 
@@ -717,6 +713,11 @@ public class DynamicCompiler {
      * The enum Statue.
      */
     public enum Statue {
+
+        /**
+         * Find class error statue.
+         */
+        FIND_CLASS_ERROR,
 
         /**
          * Compile java start statue.

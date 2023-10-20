@@ -129,4 +129,6 @@ b、远程仓库引入
       compilerDex.loadDex(ResultCallBack callBack);
       //已有dex文件，合并且自动加载dex文件并获取dex中的class
       compilerDex.mergeDex(ResultCallBack callBack);
+      //根据传入invokeAbsoluteClsName的类名获取已创建的dex的class
+      ClassManager.INSTANCE.getInitCls(String className);
 ```
