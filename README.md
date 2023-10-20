@@ -28,13 +28,12 @@
 
 ### 注意
 
-Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用
+- Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
+- Dialog字符串代码可以编译，且正常调用show显示
+- View.OnClickListener实现类字符串代码可以编译，且正常设置给控件使用
+- 可直接加载apk文件，并调用apk中dex的类，但是apk不易过于复杂、体积过大，DexClassLoader加载慢，阿里的hook库只能用于28以下的设备，就懒得弄了
 
-Dialog字符串代码可以编译，且正常调用show显示
-
-View.OnClickListener实现类字符串代码可以编译，且正常设置给控件使用
-
-其他还有什么代码编译不出暂时未知。
+#### **其他还有什么代码编译不出暂时未知......**
 
 ### 安装教程
 
