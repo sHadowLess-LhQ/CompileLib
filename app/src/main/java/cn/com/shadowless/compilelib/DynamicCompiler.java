@@ -531,7 +531,7 @@ public class DynamicCompiler {
      *
      * @param callBack the call back
      */
-    public void mergeDex(ResultCallBack callBack) {
+    private void mergeDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);
         Observable.create(new ObservableOnSubscribe<DexClassLoader>() {
                     @Override

@@ -84,7 +84,7 @@ b、远程仓库引入
 #### 使用说明
 
 ```
-      DynamicCompilerDex compilerDex = DynamicCompilerDex
+      DynamicCompiler compiler = DynamicCompiler
                 .builder()
                 //上下文
                 .context(Context context)
@@ -114,20 +114,20 @@ b、远程仓库引入
                     }
                 }).build();
       //编译字符串代码，获取dex中的class
-      compilerDex.compileJavaCode(String code);
+      compiler.compileJavaCode(String code);
       //编译Java文件，获取dex中的class
-      compilerDex.compileJavaCode(File code, String format);
+      compiler.compileJavaCode(File code, String format);
       //删除输出Dex路径下的所有dex文件
-      compilerDex.deleteAllDex();
+      compiler.deleteAllDex();
       //删除输出Dex路径下的指定文件名的dex文件
-      compilerDex.deleteDexFromName();
+      compiler.deleteDexFromName();
       //已有class文件，编译dex文件，并在已设置的结果回调接口获取dex中的class
       //classFile可以设置文件夹，编译多个class文件为一个dex
-      compilerDex.compileDex(ResultCallBack callBack);
+      compiler.compileDex(ResultCallBack callBack);
       //已有dex文件，加载dex文件并获取dex中的class
-      compilerDex.loadDex(ResultCallBack callBack);
+      compiler.loadDex(ResultCallBack callBack);
       //已有dex文件，合并且自动加载dex文件并获取dex中的class
-      compilerDex.mergeDex(ResultCallBack callBack);
+      compiler.mergeDex(ResultCallBack callBack);
       //根据传入invokeAbsoluteClsName的类名获取已创建的dex的class
       ClassManager.INSTANCE.getInitCls(String className);
 ```
