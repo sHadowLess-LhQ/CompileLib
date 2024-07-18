@@ -74,9 +74,9 @@ b、远程仓库引入
      dependencies {
            implementation 'com.gitee.shadowless_lhq:compile-lib:Tag'
             
-           implementation 'io.reactivex.rxjava2:rxjava:2.2.21'
-           implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
-           implementation 'com.github.liujingxing.rxlife:rxlife-rxjava2:2.2.2'
+           implementation 'io.reactivex.rxjava3:rxjava:3.1.8'
+           implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
+           implementation 'com.github.liujingxing.rxlife:rxlife-rxjava3:2.2.2'
            implementation 'org.codehaus.janino:janino:3.1.6'
     }
 ```

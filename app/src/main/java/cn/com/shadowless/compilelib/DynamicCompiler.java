@@ -23,13 +23,12 @@ import java.lang.reflect.Method;
 import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
-import io.reactivex.Observable;
-import io.reactivex.ObservableEmitter;
-import io.reactivex.ObservableOnSubscribe;
-import io.reactivex.Observer;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.ObservableOnSubscribe;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 /**
  * 动态编译
@@ -320,18 +319,14 @@ public class DynamicCompiler {
             return;
         }
         Observable.create(emitter -> {
-                    try {
-                        compiler.cook(fileName, new StringReader(code));
-                        emitter.onNext(new Object());
-                        emitter.onComplete();
-                    } catch (Exception e) {
-                        emitter.onError(e);
-                    }
+                    compiler.cook(fileName, new StringReader(code));
+                    emitter.onNext(new Object());
+                    emitter.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -375,18 +370,14 @@ public class DynamicCompiler {
             return;
         }
         Observable.create(emitter -> {
-                    try {
-                        compiler.cookFile(codeFile, format);
-                        emitter.onNext(new Object());
-                        emitter.onComplete();
-                    } catch (Exception e) {
-                        emitter.onError(e);
-                    }
+                    compiler.cookFile(codeFile, format);
+                    emitter.onNext(new Object());
+                    emitter.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -416,24 +407,20 @@ public class DynamicCompiler {
      */
     private void writeClassCode() {
         Observable.create((ObservableOnSubscribe<Boolean>) emitter -> {
-                    try {
-                        ClassFile[] classFiles = compiler.getClassFiles();
-                        byte[] classBytes = classFiles[0].toByteArray();
-                        boolean isSuccess = writeFileToSdCard(cachePath, classFileName, classBytes, classBytes.length, false);
-                        if (isSuccess) {
-                            emitter.onNext(true);
-                            emitter.onComplete();
-                        } else {
-                            emitter.onError(new RuntimeException("写入class文件失败"));
-                        }
-                    } catch (Exception e) {
-                        emitter.onError(e);
+                    ClassFile[] classFiles = compiler.getClassFiles();
+                    byte[] classBytes = classFiles[0].toByteArray();
+                    boolean isSuccess = writeFileToSdCard(cachePath, classFileName, classBytes, classBytes.length, false);
+                    if (isSuccess) {
+                        emitter.onNext(true);
+                        emitter.onComplete();
+                    } else {
+                        emitter.onError(new RuntimeException("写入class文件失败"));
                     }
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<Boolean>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -482,22 +469,18 @@ public class DynamicCompiler {
         File dexFile = new File(dexFilePath, dexFileName);
         File classFile = new File(dexFilePath, classFileName);
         Observable.create(emitter -> {
-                    try {
-                        ClassLoader loader = getLocalClassLoader();
-                        Class<?> javacClazz = loader.loadClass("com.android.dx.command.Main");
-                        Method method = javacClazz.getMethod("main", String[].class);
-                        String[] params = new String[]{"--dex", "--no-strict", "--output=" + dexFile.getAbsolutePath(), classFile.getAbsolutePath()};
-                        method.invoke(null, (Object) params);
-                        emitter.onNext(new Object());
-                        emitter.onComplete();
-                    } catch (Exception e) {
-                        emitter.onError(e);
-                    }
+                    ClassLoader loader = getLocalClassLoader();
+                    Class<?> javacClazz = loader.loadClass("com.android.dx.command.Main");
+                    Method method = javacClazz.getMethod("main", String[].class);
+                    String[] params = new String[]{"--dex", "--no-strict", "--output=" + dexFile.getAbsolutePath(), classFile.getAbsolutePath()};
+                    method.invoke(null, (Object) params);
+                    emitter.onNext(new Object());
+                    emitter.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<Object>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -511,7 +494,7 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.COMPILE_DEX_ERROR, 2, "编译错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.COMPILE_DEX_ERROR, 2, "编译错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
@@ -533,37 +516,30 @@ public class DynamicCompiler {
      */
     private void mergeDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);
-        Observable.create(new ObservableOnSubscribe<DexClassLoader>() {
-                    @Override
-                    public void subscribe(ObservableEmitter<DexClassLoader> emitter) throws Exception {
-                        try {
-                            ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
-                            DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
-                            Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                            pathListField.setAccessible(true);
-                            Object pathList = pathListField.get(dexClassLoader);
-                            Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
-                            dexElementsField.setAccessible(true);
-                            Object dexElements = dexElementsField.get(pathList);
-                            pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
-                            pathListField.setAccessible(true);
-                            Object appPathList = pathListField.get(loader);
-                            dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
-                            dexElementsField.setAccessible(true);
-                            Object appDexElements = dexElementsField.get(appPathList);
-                            Object newArray = DynamicCompiler.this.combineArray(appDexElements, dexElements);
-                            dexElementsField.set(appPathList, newArray);
-                            emitter.onNext(dexClassLoader);
-                            emitter.onComplete();
-                        } catch (Exception e) {
-                            emitter.onError(e);
-                        }
-                    }
+        Observable.create((ObservableOnSubscribe<DexClassLoader>) emitter -> {
+                    ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+                    DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
+                    Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                    pathListField.setAccessible(true);
+                    Object pathList = pathListField.get(dexClassLoader);
+                    Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
+                    dexElementsField.setAccessible(true);
+                    Object dexElements = dexElementsField.get(pathList);
+                    pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                    pathListField.setAccessible(true);
+                    Object appPathList = pathListField.get(loader);
+                    dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
+                    dexElementsField.setAccessible(true);
+                    Object appDexElements = dexElementsField.get(appPathList);
+                    Object newArray = DynamicCompiler.this.combineArray(appDexElements, dexElements);
+                    dexElementsField.set(appPathList, newArray);
+                    emitter.onNext(dexClassLoader);
+                    emitter.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<DexClassLoader>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -577,7 +553,7 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.MERGE_DEX_ERROR, 2, "合并错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.MERGE_DEX_ERROR, 2, "合并错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
@@ -596,22 +572,18 @@ public class DynamicCompiler {
     public void loadDex(ResultCallBack callBack) {
         File dexFile = new File(dexFilePath, dexFileName);
         Observable.create((ObservableOnSubscribe<Class<?>>) emitter -> {
-                    try {
-                        if (mergerClassLoader == null) {
-                            mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
-                        }
-                        Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
-                        ClassManager.INSTANCE.addInitClass(absoluteClsName, temp);
-                        emitter.onNext(temp);
-                        emitter.onComplete();
-                    } catch (Exception e) {
-                        emitter.onError(e);
+                    if (mergerClassLoader == null) {
+                        mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
                     }
+                    Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
+                    ClassManager.INSTANCE.addInitClass(absoluteClsName, temp);
+                    emitter.onNext(temp);
+                    emitter.onComplete();
                 })
                 .subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .as(RxLife.as(owner))
+                .to(RxLife.to(owner))
                 .subscribe(new Observer<Class<?>>() {
                     @Override
                     public void onSubscribe(Disposable d) {
@@ -631,7 +603,7 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.LOAD_DEX_ERROR, 2, "编译错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.LOAD_DEX_ERROR, 2, "编译错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
