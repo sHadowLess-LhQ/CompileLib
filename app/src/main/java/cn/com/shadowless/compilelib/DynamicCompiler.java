@@ -20,9 +20,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import dalvik.system.BaseDexClassLoader;
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
+import dalvik.system.PathClassLoader;
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.core.ObservableOnSubscribe;
@@ -37,36 +37,84 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
  */
 public class DynamicCompiler {
 
+    /**
+     * The Tag.
+     */
     private final String TAG = DynamicCompiler.class.getSimpleName();
 
+    /**
+     * The Context.
+     */
     private final Context context;
 
+    /**
+     * The Dex file path.
+     */
     private final String dexFilePath;
 
+    /**
+     * The File name.
+     */
     private final String fileName;
 
+    /**
+     * The Class file name.
+     */
     private final String classFileName;
 
+    /**
+     * The Dex file name.
+     */
     private final String dexFileName;
 
+    /**
+     * The Absolute cls name.
+     */
     private final String absoluteClsName;
 
+    /**
+     * The Call back.
+     */
     private final ResultCallBack callBack;
 
+    /**
+     * The Compiler.
+     */
     private final SimpleCompiler compiler;
 
+    /**
+     * The Cache path.
+     */
     private final String cachePath;
 
+    /**
+     * The Op dex cache path.
+     */
     private final String opDexCachePath;
 
+    /**
+     * The Is generate compile info.
+     */
     private final boolean isGenerateCompileInfo;
 
+    /**
+     * The Is merge dex.
+     */
     private final boolean isMergeDex;
 
+    /**
+     * The Is update.
+     */
     private final boolean isUpdate;
 
+    /**
+     * The Owner.
+     */
     private final LifecycleOwner owner;
 
+    /**
+     * The Merger class loader.
+     */
     private DexClassLoader mergerClassLoader;
 
     /**
@@ -79,6 +127,7 @@ public class DynamicCompiler {
      * @param dexFileName           the dex file name
      * @param absoluteClsName       the absolute cls name
      * @param isMergeDex            the is merge dex
+     * @param isUpdate              the is update
      * @param isGenerateCompileInfo the is generate compile info
      * @param owner                 the owner
      * @param callBack              the call back
@@ -127,26 +176,59 @@ public class DynamicCompiler {
      */
     public static class DynamicCompilerBuilder {
 
+        /**
+         * The Context.
+         */
         private Context context;
 
+        /**
+         * The Dex file path.
+         */
         private String dexFilePath;
 
+        /**
+         * The File name.
+         */
         private String fileName;
 
+        /**
+         * The Class file name.
+         */
         private String classFileName;
 
+        /**
+         * The Dex file name.
+         */
         private String dexFileName;
 
+        /**
+         * The Absolute cls name.
+         */
         private String absoluteClsName;
 
+        /**
+         * The Is merge dex.
+         */
         private boolean isMergeDex;
 
+        /**
+         * The Is update.
+         */
         private boolean isUpdate;
 
+        /**
+         * The Is generate compile info.
+         */
         private boolean isGenerateCompileInfo;
 
+        /**
+         * The Owner.
+         */
         private LifecycleOwner owner;
 
+        /**
+         * The Call back.
+         */
         private ResultCallBack callBack;
 
         /**
@@ -214,6 +296,12 @@ public class DynamicCompiler {
             return this;
         }
 
+        /**
+         * Is update dynamic compiler builder.
+         *
+         * @param isUpdate the is update
+         * @return the dynamic compiler builder
+         */
         public DynamicCompilerBuilder isUpdate(boolean isUpdate) {
             this.isUpdate = isUpdate;
             return this;
@@ -262,11 +350,21 @@ public class DynamicCompiler {
         }
     }
 
+    /**
+     * Check dex exit boolean.
+     *
+     * @return the boolean
+     */
     private boolean checkDexExit() {
         File file = new File(dexFilePath, dexFileName);
         return file.exists();
     }
 
+    /**
+     * Check class exit boolean.
+     *
+     * @return the boolean
+     */
     private boolean checkClassExit() {
         File file = new File(dexFilePath, classFileName);
         return file.exists();
@@ -302,7 +400,7 @@ public class DynamicCompiler {
     }
 
     /**
-     * Compile java code.
+     * 编译Java字符串代码
      *
      * @param code the code
      */
@@ -340,7 +438,7 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
@@ -352,7 +450,7 @@ public class DynamicCompiler {
     }
 
     /**
-     * Compile java code.
+     * 指定编码格式编译Java字符串代码
      *
      * @param codeFile the code file
      * @param format   the format
@@ -391,7 +489,7 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.COMPILE_JAVA_ERROR, 2, "编译错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
@@ -403,7 +501,7 @@ public class DynamicCompiler {
     }
 
     /**
-     * Write class code.
+     * 写入java字节码文件到存储中
      */
     private void writeClassCode() {
         Observable.create((ObservableOnSubscribe<Boolean>) emitter -> {
@@ -434,23 +532,23 @@ public class DynamicCompiler {
 
                     @Override
                     public void onError(Throwable e) {
-                        printCompileInfo(callBack, Statue.WRITE_CLASS_ERROR, 2, "写入class文件错误：" + e.getMessage());
+                        printCompileInfo(callBack, Statue.WRITE_CLASS_ERROR, 2, "写入class文件错误：" + Log.getStackTraceString(e));
                     }
 
                     @Override
                     public void onComplete() {
                         printCompileInfo(callBack, Statue.WRITE_CLASS_FINISH, 1, "写入class文件完成");
-                        compileDex(callBack);
+                        compileClassToDex(callBack);
                     }
                 });
     }
 
     /**
-     * Compile dex.
+     * 编译class文件为dex文件
      *
      * @param callBack the call back
      */
-    public void compileDex(ResultCallBack callBack) {
+    public void compileClassToDex(ResultCallBack callBack) {
         if (!checkClassExit()) {
             printCompileInfo(callBack, Statue.COMPILE_DEX_ERROR, 2, "需要编译的class文件不存在");
             return;
@@ -510,7 +608,7 @@ public class DynamicCompiler {
     }
 
     /**
-     * Merge dex.
+     * 合并编译的dex文件到当前app的dex列表中（单次运行时持久化）
      *
      * @param callBack the call back
      */
@@ -519,13 +617,13 @@ public class DynamicCompiler {
         Observable.create((ObservableOnSubscribe<DexClassLoader>) emitter -> {
                     ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
                     DexClassLoader dexClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, loader);
-                    Field pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                    Field pathListField = PathClassLoader.class.getDeclaredField("pathList");
                     pathListField.setAccessible(true);
                     Object pathList = pathListField.get(dexClassLoader);
                     Field dexElementsField = pathList.getClass().getDeclaredField("dexElements");
                     dexElementsField.setAccessible(true);
                     Object dexElements = dexElementsField.get(pathList);
-                    pathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
+                    pathListField = PathClassLoader.class.getDeclaredField("pathList");
                     pathListField.setAccessible(true);
                     Object appPathList = pathListField.get(loader);
                     dexElementsField = appPathList.getClass().getDeclaredField("dexElements");
@@ -565,7 +663,7 @@ public class DynamicCompiler {
     }
 
     /**
-     * Load dex class.
+     * 加载dex文件
      *
      * @param callBack the call back
      */
@@ -576,7 +674,6 @@ public class DynamicCompiler {
                         mergerClassLoader = new DexClassLoader(dexFile.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
                     }
                     Class<?> temp = mergerClassLoader.loadClass(absoluteClsName);
-                    ClassManager.INSTANCE.addInitClass(absoluteClsName, temp);
                     emitter.onNext(temp);
                     emitter.onComplete();
                 })
@@ -593,11 +690,11 @@ public class DynamicCompiler {
                     @Override
                     public void onNext(Class<?> cls) {
                         try {
-                            callBack.getClass(cls);
+                            callBack.getLoadSuccessClass(cls);
                         } catch (NoSuchMethodException | InvocationTargetException |
                                  IllegalAccessException | InstantiationException |
                                  ClassNotFoundException e) {
-                            printCompileInfo(callBack, Statue.GET_CLASS_ERROR, 2, "获取类错误：" + e.getMessage());
+                            printCompileInfo(callBack, Statue.GET_CLASS_ERROR, 2, "获取Dex中类错误：" + Log.getStackTraceString(e));
                         }
                     }
 
@@ -613,6 +710,12 @@ public class DynamicCompiler {
                 });
     }
 
+    /**
+     * 获取dex文件
+     *
+     * @param o the o
+     * @return the dex file
+     */
     private DexFile getDexFile(Object o) {
         try {
             Field dexFileField = o.getClass().getDeclaredField("dexFile");
@@ -624,6 +727,13 @@ public class DynamicCompiler {
         return null;
     }
 
+    /**
+     * 合并dex数组
+     *
+     * @param firstArray  the first array
+     * @param secondArray the second array
+     * @return the object
+     */
     private Object combineArray(Object firstArray, Object secondArray) {
         boolean isDuplicate = false;
         Object[] parentDexList = (Object[]) firstArray;
@@ -654,6 +764,14 @@ public class DynamicCompiler {
         return newArray;
     }
 
+    /**
+     * 日志输出
+     *
+     * @param callBack the call back
+     * @param statue   the statue
+     * @param level    the level
+     * @param info     the info
+     */
     private void printCompileInfo(ResultCallBack callBack, Statue statue, int level, String info) {
         callBack.getCompileStatue(statue);
         if (isGenerateCompileInfo) {
@@ -670,6 +788,16 @@ public class DynamicCompiler {
         }
     }
 
+    /**
+     * 写入文件
+     *
+     * @param dirPath    the dir path
+     * @param fileName   the file name
+     * @param data       the data
+     * @param len        the len
+     * @param isContinue the is continue
+     * @return the boolean
+     */
     private boolean writeFileToSdCard(String dirPath, String fileName, byte[] data, int len, boolean isContinue) {
         File dirs = new File(dirPath);
         if (!dirs.exists()) {
@@ -685,6 +813,11 @@ public class DynamicCompiler {
         return false;
     }
 
+    /**
+     * 获取当前类加载器
+     *
+     * @return the local class loader
+     */
     private ClassLoader getLocalClassLoader() {
         ClassLoader loader = DynamicCompiler.class.getClassLoader();
         if (loader == null) {
@@ -707,7 +840,7 @@ public class DynamicCompiler {
          * @throws IllegalAccessException    the illegal access exception
          * @throws InstantiationException    the instantiation exception
          */
-        void getClass(Class<?> cls) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException;
+        void getLoadSuccessClass(Class<?> cls) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException;
 
         /**
          * Gets error info.
@@ -721,11 +854,6 @@ public class DynamicCompiler {
      * The enum Statue.
      */
     public enum Statue {
-
-        /**
-         * Find class error statue.
-         */
-        FIND_CLASS_ERROR,
 
         /**
          * Compile java start statue.
