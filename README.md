@@ -3,7 +3,9 @@
 ### 个人自用安卓运行时动态编译Java字节码库
 
 仅一个类达到：
-Java代码字符串  ->  class字节码 -> Dex文件 -> 可反射调用的Class对象
+Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射调用的Class对象
+
+### 【注】：对于1.x版本，2.x是完全重构，不兼容
 
 ### 缘由
 
@@ -93,42 +95,55 @@ b、远程仓库引入
                 .context(Context context)
                 //生命周期监听
                 .lifecycle(LifecycleOwner owner)
-                //是否合并Dex（仅对使用compileJavaCode时有效）
-                .isMergeDex(true)
-                //是否打印编译日志
-                .isGenerateCompileInfo(boolean isPrint)
-                //编译的文件名
-                //可以填入xx.class或者xx.dex或者xx.apk
-                //内部会自动处理，如果使用compileDex，class文件名和填入的要一致，其他类型类推
-                .fileName(String fileName)
-                //输出dex文件的路径
-                .dexFilePath(String dexFilePath)
-                //需要加载的完整类名
-                .invokeAbsoluteClsName(String className)
-                .resultCallBack(new DynamicCompilerDex.ResultCallBack() {
-                    @Override
-                    public void getClass(Class<?> cls) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-                         //获取到已加载的类
-                    }
-
-                    @Override
-                    public void getCompileStatue(DynamicCompilerDex.Statue statue) {
-                         //获取编译状态
-                    }
-                }).build();
-      //编译字符串代码，获取dex中的class
-      compiler.compileJavaCode(String code);
-      //编译Java文件，获取dex中的class
-      compiler.compileJavaCode(File code, String format);
-      //删除输出Dex路径下的所有dex文件
-      compiler.deleteAllDex();
-      //删除输出Dex路径下的指定文件名的dex文件
-      compiler.deleteDexFromName();
-      //已有class文件，编译dex文件，并在已设置的结果回调接口获取dex中的class
-      //classFile可以设置文件夹，编译多个class文件为一个dex
-      compiler.compileDex(ResultCallBack callBack);
-      //已有dex文件，加载dex文件并获取dex中的class
-      compiler.loadDex(ResultCallBack callBack);
-      //已有dex文件，合并且自动加载dex文件并获取dex中的class
-      compiler.mergeDex(ResultCallBack callBack);
+                //编译dex的存放路径
+                //与cachePath不能为同一个
+                .compileDexPath(String compileDexPath)
+                //编译class文件的缓存路径
+                //与compileDexPath不能为同一个
+                .cachePath(String cachePath)
+                //是否输出编译class文件日志
+                .hasCompileLog(true)
+                .build();
+      //设置日志输出监听
+      compiler.setStatueObserver(androidx.lifecycle.Observer<Statue> observer);
+      //编译单个字符串代码
+      compiler.compileStringJavaCodeToClass(String classFileName, String javaCode);
+      //编译多个字符串代码（key为classFileName，value为javaCode，key必须以.class结尾）
+      compiler.compileStringJavaCodeToClass(Map<String, String> map);
+      //编译单个Java文件(默认格式UTF-8)
+      compiler.compileFileJavaCodeToClass(File javaFile);
+      //指定编码格式编译单个Java文件
+      compiler.compileFileJavaCodeToClass(File javaFile, String format);
+      //指定编码格式编译多个Java文件（key为File对象，文件名必须以class结尾,value为编码格式）
+      compiler.compileFileJavaCodeToClass(Map<File, String> map);
+      //指定dex名，普通编译dex文件
+      compiler.compileClassFileToDex(String dexName);
+      //指定dex名，自定义编译dex文件（如果对dx工具有研究，可自定义编译参数）
+      compiler.compileClassFileToDex(String dexName, String... param);
+      //指定单个dex名，合并单个dex到app运行时pathList
+      compiler.mergeDexToAppByName(String dexName);
+      //指定多个dex名，合并多个dex到app运行时pathList
+      compiler.mergeDexToAppByName(List<String> dexNameList);
+      //指定单个File对象，合并单个dex到app运行时pathList
+      compiler.mergeDexToAppByFile(File dexFile);
+      //指定多个File对象，合并多个dex到app运行时pathList
+      compiler.mergeDexToAppByFile(List<File> dexFileList);
+      //指定单个dex名和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithoutMergeByName(String dexName, String absoluteClsName);
+      //指定多个dex名和需要调用的绝对路径类名，加载dex（key为dex名，dex名必须以.dex结尾，value为绝对路径类名）
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithoutMergeByName(Map<String, String> map);
+      //指定单个File对象和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithoutMergeByFile(File dexFile, String absoluteClsName);
+      //指定多个File对象和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithoutMergeByFile(Map<File, String> map);
+      //指定单个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则一定找不到类）
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithMergeByName(String absoluteClsName);
+      //指定多个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则一定找不到类）
+      //返回的map，key为绝对路径类名，value为Class对象
+      compiler.loadDexToClassWithMergeByName(List<String> absoluteClsNameList);
 ```
