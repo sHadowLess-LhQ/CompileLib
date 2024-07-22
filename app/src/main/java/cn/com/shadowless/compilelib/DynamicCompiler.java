@@ -94,7 +94,7 @@ public final class DynamicCompiler {
         this.compileDexPath = compileDexPath;
         tempCachePath = cachePath;
         if (TextUtils.isEmpty(tempCachePath)) {
-            tempCachePath = context.getExternalFilesDir(null).getAbsolutePath();
+            tempCachePath = context.getExternalCacheDir().getAbsolutePath();
         } else {
             if (!new File(tempCachePath).isDirectory()) {
                 throw new RuntimeException("缓存路径必须是文件夹");
@@ -119,7 +119,7 @@ public final class DynamicCompiler {
     private ErrorHandler getErrorHandler() {
         return (s, location) -> {
             String builder = "错误信息：" + s + "\n" + "错误文件名：" + location.getFileName() + "\n" + "错误行：" + "第" + location.getLineNumber() + "行" + "\n" + "错误列：" + "第" + location.getColumnNumber() + "列";
-            DynamicCompiler.this.printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, builder.toString());
+            printCompileInfo(Statue.COMPILE_JAVA_ERROR, 2, builder.toString());
         };
     }
 
@@ -131,7 +131,7 @@ public final class DynamicCompiler {
     private WarningHandler getWarningHandler() {
         return (s, s1, location) -> {
             String builder = "警告信息：" + s1 + "\n" + "文件名：" + location.getFileName() + "\n" + "警告行：" + "第" + location.getLineNumber() + "行" + "\n" + "警告列：" + "第" + location.getColumnNumber() + "列";
-            DynamicCompiler.this.printCompileInfo(Statue.COMPILE_JAVA_WARNING, 1, builder.toString());
+            printCompileInfo(Statue.COMPILE_JAVA_WARNING, 1, builder.toString());
         };
     }
 
@@ -205,8 +205,6 @@ public final class DynamicCompiler {
         public DynamicCompilerBuilder compileDexPath(String compileDexPath) {
             this.compileDexPath = compileDexPath;
             return this;
-
-
         }
 
         /**
@@ -401,22 +399,22 @@ public final class DynamicCompiler {
     /**
      * Merge dex to app by name observable.
      *
-     * @param dexName the dex name
+     * @param fileName the file name
      * @return the observable
      */
-    public Observable<Boolean> mergeDexToAppByName(String dexName) {
-        return mergeDexToAppByName(Arrays.asList(dexName));
+    public Observable<Boolean> mergeDexToAppByName(String fileName) {
+        return mergeDexToAppByName(Arrays.asList(fileName));
     }
 
     /**
      * Merge dex to app by name observable.
      *
-     * @param dexNameList the dex name list
+     * @param fileNameList the file name list
      * @return the observable
      */
-    public Observable<Boolean> mergeDexToAppByName(List<String> dexNameList) {
+    public Observable<Boolean> mergeDexToAppByName(List<String> fileNameList) {
         return Observable.create(emitter -> {
-            ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+            ClassLoader loader = getLocalClassLoader();
 
             Field appPathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
             appPathListField.setAccessible(true);
@@ -425,9 +423,9 @@ public final class DynamicCompiler {
             appDexElementsField.setAccessible(true);
             Object appDexElements = appDexElementsField.get(appPathList);
 
-            for (String name : dexNameList) {
-                if (!name.endsWith(".dex")) {
-                    emitter.onError(new Throwable("传入的dexName必须以.dex结尾"));
+            for (String name : fileNameList) {
+                if (!name.endsWith(".dex") && !name.endsWith(".apk")) {
+                    emitter.onError(new Throwable("传入的dexName必须以.dex或.apk结尾"));
                     return;
                 }
                 File dexFile = new File(compileDexPath, name);
@@ -468,7 +466,7 @@ public final class DynamicCompiler {
      */
     public Observable<Boolean> mergeDexToAppByFile(List<File> dexFileList) {
         return Observable.create(emitter -> {
-            ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+            ClassLoader loader = getLocalClassLoader();
 
             Field appPathListField = BaseDexClassLoader.class.getDeclaredField("pathList");
             appPathListField.setAccessible(true);
@@ -478,8 +476,9 @@ public final class DynamicCompiler {
             Object appDexElements = appDexElementsField.get(appPathList);
 
             for (File file : dexFileList) {
-                if (!file.getName().endsWith(".dex")) {
-                    emitter.onError(new Throwable("传入的File必须以.dex结尾"));
+                String fileName = file.getName();
+                if (!fileName.endsWith(".dex") || !fileName.endsWith(".apk")) {
+                    emitter.onError(new Throwable("传入的File必须以.dex或.apk结尾"));
                     return;
                 }
                 if (!file.exists()) {
@@ -511,31 +510,34 @@ public final class DynamicCompiler {
     public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByName(String dexName, String absoluteClsName) {
         Map<String, String> map = new HashMap<>(1);
         map.put(dexName, absoluteClsName);
-        return loadDexToClassWithoutMergeByName(map);
+        return loadDexToClassWithoutMergeByName(Arrays.asList(map));
     }
 
     /**
      * Load dex to class without merge by name observable.
      *
-     * @param map the map
+     * @param list the list
      * @return the observable
      */
-    public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByName(Map<String, String> map) {
+    public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByName(List<Map<String, String>> list) {
         return Observable.create(emitter -> {
-            Map<String, Class<?>> classMap = new HashMap<>(map.size());
-            for (Map.Entry<String, String> entry : map.entrySet()) {
-                File file = new File(compileDexPath, entry.getKey());
-                if (!file.getName().endsWith(".dex")) {
-                    emitter.onError(new Throwable("传入的dexName必须以.dex结尾"));
-                    return;
+            Map<String, Class<?>> classMap = new HashMap<>(list.size());
+            for (Map<String, String> temp : list) {
+                for (Map.Entry<String, String> entry : temp.entrySet()) {
+                    File file = new File(compileDexPath, entry.getKey());
+                    String fileName = file.getName();
+                    if (!fileName.endsWith(".dex") && !fileName.endsWith(".apk")) {
+                        emitter.onError(new Throwable("传入的File必须以.dex或.apk结尾"));
+                        return;
+                    }
+                    if (!file.exists()) {
+                        emitter.onError(new Throwable("该dex文件不存在：" + file.getAbsolutePath()));
+                        return;
+                    }
+                    DexClassLoader classLoader = new DexClassLoader(file.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
+                    Class<?> loadClass = classLoader.loadClass(entry.getValue());
+                    classMap.put(entry.getValue(), loadClass);
                 }
-                if (!file.exists()) {
-                    emitter.onError(new Throwable("该dex文件不存在：" + file.getAbsolutePath()));
-                    return;
-                }
-                DexClassLoader classLoader = new DexClassLoader(file.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
-                Class<?> temp = classLoader.loadClass(entry.getValue());
-                classMap.put(entry.getValue(), temp);
             }
             emitter.onNext(classMap);
             emitter.onComplete();
@@ -552,31 +554,34 @@ public final class DynamicCompiler {
     public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByFile(File dexFile, String absoluteClsName) {
         Map<File, String> map = new HashMap<>(1);
         map.put(dexFile, absoluteClsName);
-        return loadDexToClassWithoutMergeByFile(map);
+        return loadDexToClassWithoutMergeByFile(Arrays.asList(map));
     }
 
     /**
      * Load dex to class without merge by file observable.
      *
-     * @param map the map
+     * @param list the list
      * @return the observable
      */
-    public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByFile(Map<File, String> map) {
+    public Observable<Map<String, Class<?>>> loadDexToClassWithoutMergeByFile(List<Map<File, String>> list) {
         return Observable.create(emitter -> {
-            Map<String, Class<?>> classMap = new HashMap<>(map.size());
-            for (Map.Entry<File, String> entry : map.entrySet()) {
-                File file = entry.getKey();
-                if (!file.getName().endsWith(".dex")) {
-                    emitter.onError(new Throwable("传入的dexName必须以.dex结尾"));
-                    return;
+            Map<String, Class<?>> classMap = new HashMap<>(list.size());
+            for (Map<File, String> temp : list) {
+                for (Map.Entry<File, String> entry : temp.entrySet()) {
+                    File file = entry.getKey();
+                    String fileName = file.getName();
+                    if (!fileName.endsWith(".dex") || !fileName.endsWith(".apk")) {
+                        emitter.onError(new Throwable("传入的File必须以.dex或.apk结尾"));
+                        return;
+                    }
+                    if (!file.exists()) {
+                        emitter.onError(new Throwable("该dex文件不存在：" + file.getAbsolutePath()));
+                        return;
+                    }
+                    DexClassLoader classLoader = new DexClassLoader(file.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
+                    Class<?> loadClass = classLoader.loadClass(entry.getValue());
+                    classMap.put(entry.getValue(), loadClass);
                 }
-                if (!file.exists()) {
-                    emitter.onError(new Throwable("该dex文件不存在：" + file.getAbsolutePath()));
-                    return;
-                }
-                DexClassLoader classLoader = new DexClassLoader(file.getAbsolutePath(), opDexCachePath, null, getLocalClassLoader());
-                Class<?> temp = classLoader.loadClass(entry.getValue());
-                classMap.put(entry.getValue(), temp);
             }
             emitter.onNext(classMap);
             emitter.onComplete();
@@ -604,7 +609,7 @@ public final class DynamicCompiler {
         return Observable.create(emitter -> {
             Map<String, Class<?>> classMap = new HashMap<>(absoluteClsNameList.size());
             for (String name : absoluteClsNameList) {
-                ClassLoader loader = DynamicCompiler.this.getLocalClassLoader();
+                ClassLoader loader = getLocalClassLoader();
                 Class<?> temp = loader.loadClass(name);
                 classMap.put(name, temp);
             }

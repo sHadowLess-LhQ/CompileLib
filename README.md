@@ -120,30 +120,38 @@ b、远程仓库引入
       compiler.compileClassFileToDex(String dexName);
       //指定dex名，自定义编译dex文件（如果对dx工具有研究，可自定义编译参数）
       compiler.compileClassFileToDex(String dexName, String... param);
-      //指定单个dex名，合并单个dex到app运行时pathList
-      compiler.mergeDexToAppByName(String dexName);
-      //指定多个dex名，合并多个dex到app运行时pathList
-      compiler.mergeDexToAppByName(List<String> dexNameList);
-      //指定单个File对象，合并单个dex到app运行时pathList
+      //指定单个dex名或apk名，合并单个dex到app运行时pathList
+      //fileName必须以.dex或.apk结尾
+      compiler.mergeDexToAppByName(String fileName);
+      //指定多个dex名或apk名，合并多个dex到app运行时pathList
+      //fileName必须以.dex或.apk结尾
+      compiler.mergeDexToAppByName(List<String> fileNameList);
+      //指定单个File对象（Dex文件或Apk文件），合并单个dex到app运行时pathList
+      //fileName必须以.dex或.apk结尾
       compiler.mergeDexToAppByFile(File dexFile);
-      //指定多个File对象，合并多个dex到app运行时pathList
+      //指定多个File对象（Dex文件或Apk文件），合并多个dex到app运行时pathList
+      //fileName必须以.dex或.apk结尾
       compiler.mergeDexToAppByFile(List<File> dexFileList);
-      //指定单个dex名和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      //指定单个dex名或apk名和需要调用的绝对路径类名，加载dex
+      //fileName必须以.dex或.apk结尾
       //返回的map，key为绝对路径类名，value为Class对象
-      compiler.loadDexToClassWithoutMergeByName(String dexName, String absoluteClsName);
-      //指定多个dex名和需要调用的绝对路径类名，加载dex（key为dex名，dex名必须以.dex结尾，value为绝对路径类名）
+      compiler.loadDexToClassWithoutMergeByName(String fileName, String absoluteClsName);
+      //指定多个dex名或apk名和需要调用的绝对路径类名，加载dex（key为dex名，value为绝对路径类名）
+      //key必须以.dex或.apk结尾
       //返回的map，key为绝对路径类名，value为Class对象
-      compiler.loadDexToClassWithoutMergeByName(Map<String, String> map);
-      //指定单个File对象和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      compiler.loadDexToClassWithoutMergeByName(List<Map<String, String>> list);
+      //指定单个File对象（Dex文件或Apk文件）和需要调用的绝对路径类名，加载dex
+      //文件名必须以.dex或.apk结尾
       //返回的map，key为绝对路径类名，value为Class对象
       compiler.loadDexToClassWithoutMergeByFile(File dexFile, String absoluteClsName);
-      //指定多个File对象和需要调用的绝对路径类名，加载dex，dex名必须以.dex结尾
+      //指定多个File对象（Dex文件或Apk文件）和需要调用的绝对路径类名，加载dex
+      //文件名必须以.dex或.apk结尾
       //返回的map，key为绝对路径类名，value为Class对象
-      compiler.loadDexToClassWithoutMergeByFile(Map<File, String> map);
-      //指定单个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则一定找不到类）
+      compiler.loadDexToClassWithoutMergeByFile(List<Map<File, String>> list);
+      //指定单个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则找不到类）
       //返回的map，key为绝对路径类名，value为Class对象
       compiler.loadDexToClassWithMergeByName(String absoluteClsName);
-      //指定多个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则一定找不到类）
+      //指定多个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则找不到类）
       //返回的map，key为绝对路径类名，value为Class对象
       compiler.loadDexToClassWithMergeByName(List<String> absoluteClsNameList);
 ```
