@@ -33,14 +33,17 @@ Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射�
 
 ### 注意
 
-- Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
+- 所有字符串代码，不能含任何注解，无论类上还是方法上，还是参数上
 - 所有字符串代码不能使用lambda表达式
+- 加载外部apk到当前app的DexList，apk内布局文件的加载问题需要自己解决，这个库不是插件化库
+- Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
 - Dialog字符串代码可以编译，且正常调用show显示
 - 可以加载外部apk的View视图到当前App使用
-- 加载外部apk到当前app的DexList，布局文件的加载问题需要自己解决，这个库不是插件化库。
 - View.OnClickListener实现类字符串代码可以编译，且正常设置给控件使用
 - 外部Apk实现的View.OnClickListener类可以正常获取并正常设置给控件使用，逻辑中含有第三方库，只要合并的app里有就可以用
-- 有些原生视图以字符串代码编译有问题，比如Button，不能在内部设置点击事件，不然无法编译
+- 有些原生视图以字符串代码编译有问题，比如Button，不能在任何方法内直接设置setOnClickListener的
+  
+  View.OnClickListener，这样编译会报错，必须把接口挂载到类上才能正常编译和使用
 - 可直接加载apk文件，并调用apk中dex的类，但是apk不易过于复杂、体积过大，DexClassLoader加载慢，阿里的hook库只能用于28以下的设备，就懒得弄了
 
 #### **其他还有什么代码编译不出暂时未知......**
@@ -160,4 +163,8 @@ b、远程仓库引入
       //指定多个绝对路径类名加载dex（一定是调用merge之后，才能使用，否则找不到类）
       //返回的map，key为绝对路径类名，value为Class对象
       compiler.loadDexToClassWithMergeByName(List<String> absoluteClsNameList);
+      //删除缓存路径下所有文件
+      compiler.clearCacheFolder();
+      //删除编译路径下所有文件
+      compiler.clearCompileFolder()
 ```

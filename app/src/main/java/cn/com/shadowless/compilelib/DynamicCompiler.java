@@ -627,6 +627,42 @@ public final class DynamicCompiler {
         statueData.observe(owner, observer);
     }
 
+    /**
+     * Clear cache folder.
+     */
+    public void clearCacheFolder() {
+        deleteFilesInDirectory(cachePath);
+    }
+
+    /**
+     * Clear compile folder.
+     */
+    public void clearCompileFolder() {
+        deleteFilesInDirectory(compileDexPath);
+    }
+
+    /**
+     * Delete files in directory.
+     *
+     * @param dirPath the dir path
+     */
+    private void deleteFilesInDirectory(String dirPath) {
+        File directory = new File(dirPath);
+        if (directory.exists() && directory.isDirectory()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        file.delete();
+                    } else if (file.isDirectory()) {
+                        deleteFilesInDirectory(file.getAbsolutePath());
+                        file.delete();
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * Gets dex file.
