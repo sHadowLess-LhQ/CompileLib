@@ -32,8 +32,9 @@ Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射�
 ### 注意
 
 - Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
-- 本库编译Dex文件是依托于谷歌的DexMaker库的Dx工具，无法正常编译Dex文件，请检查DexMaker是否集成
 - Dialog字符串代码可以编译，且正常调用show显示
+- 可以加载外部apk的View视图到当前App使用
+- 加载外部apk到当前app的DexList，布局文件的加载问题需要自己解决，这个库不是插件化库。
 - View.OnClickListener实现类字符串代码可以编译，且正常设置给控件使用
 - 可直接加载apk文件，并调用apk中dex的类，但是apk不易过于复杂、体积过大，DexClassLoader加载慢，阿里的hook库只能用于28以下的设备，就懒得弄了
 
