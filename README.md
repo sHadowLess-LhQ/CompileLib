@@ -35,7 +35,7 @@ Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射�
 
 - 所有字符串代码，不能含任何注解，无论类上还是方法上，还是参数上
 - 所有字符串代码不能使用lambda表达式
-- 加载外部apk到当前app的DexList，apk内布局文件的加载问题需要自己解决，这个库不是插件化库（要是真的这样干，处理布局文件。1、要么放一份布局文件在编译app里；2、要么插件化处理被加载apk的上下文；3、要么把apk文件里需要的布局文件复制到编译app的assets文件夹里，被编译app走AssetManager拿布局文件）
+- 加载外部apk到当前app的DexList，apk内布局文件的加载问题需要自己解决，这个库不是插件化库
 - Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
 - Dialog字符串代码可以编译，且正常调用show显示
 - 可以加载外部apk的View视图到当前App使用
