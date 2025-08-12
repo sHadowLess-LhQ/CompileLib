@@ -91,7 +91,7 @@ b、远程仓库引入
            implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
            implementation 'com.github.liujingxing.rxlife:rxlife-rxjava3:2.2.2'
            implementation 'com.linkedin.dexmaker:dexmaker:2.28.3'
-           implementation 'org.codehaus.janino:janino:3.1.6'
+           implementation 'org.codehaus.janino:janino:3.1.12'
     }
 ```
 
