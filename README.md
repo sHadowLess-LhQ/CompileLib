@@ -33,7 +33,7 @@ Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射�
 
 ### 注意
 
-- 所有字符串代码，不能含任何注解，无论类上还是方法上，还是参数上
+- ~~所有字符串代码，不能含任何注解，无论类上还是方法上，还是参数上~~（3.1.12版本已可以编译带注解的字符串代码，比如OnClickListener的@Override）
 - 所有字符串代码不能使用lambda表达式
 - 加载外部apk到当前app的DexList，apk内布局文件的加载问题需要自己解决，这个库不是插件化库
 - Activity字符串代码编译报错，只能外部加载含有Activity的dex，AM预插入Activity信息后使用或者预埋代理Activity做强转（还是喜欢预埋，省得强转出问题）
@@ -48,9 +48,9 @@ Java代码字符串/Java源文件  ->  class字节码 -> dex文件 -> 可反射�
 
 #### **其他还有什么代码编译不出暂时未知......**
 
-### 安装教程
+## 安装教程
 
-Step 1. 添加仓库地址和配置
+### Step 1. 添加仓库地址和配置
 
 ```
      //旧AndroidStudio版本
@@ -73,17 +73,17 @@ Step 1. 添加仓库地址和配置
       }
 ```
 
-Step 2. 添加依赖
+### Step 2. 添加依赖
 
-a、克隆引入
+#### a、克隆引入
 
 直接下载源码引入model
 
-b、远程仓库引入
+#### b、远程仓库引入
 
 [![](https://jitpack.io/v/sHadowLess-LhQ/CompileLib.svg)](https://jitpack.io/#sHadowLess-LhQ/CompileLib)
 
-```
+```gradle
      dependencies {
            implementation 'com.github.sHadowLess-LhQ:CompileLib:Tag'
             
@@ -95,9 +95,9 @@ b、远程仓库引入
     }
 ```
 
-#### 使用说明
+## 使用说明
 
-```
+```java
       DynamicCompiler compiler = DynamicCompiler
                 .builder()
                 //上下文
@@ -167,4 +167,32 @@ b、远程仓库引入
       compiler.clearCacheFolder();
       //删除编译路径下所有文件
       compiler.clearCompileFolder()
+      //简单使用示例
+      val code2 =
+            "package com.example.test;import android.util.Log;import android.view.View;public class ClickImpl implements View.OnClickListener {@Override public void onClick(View v) {Log.e(\"TAG\", \"onClick: 点击了\");}}"
+        compiler
+            .compileStringJavaCodeToClass(
+                "test2.class",
+                code2
+            )
+            .concatMap {
+                compiler.compileClassFileToDex("test2.dex")
+            }
+            .concatMap {
+                compiler.mergeDexToAppByName("test2.dex")
+            }
+            .concatMap {
+                compiler.loadDexToClassWithMergeByName("com.example.test.ClickImpl")
+            }
+            .subscribe(
+                {
+                    Log.e("TAG", "编译成功")
+                    val clickImpl = it.get("com.example.test.ClickImpl")
+                    val click = clickImpl?.getConstructor()?.newInstance() as View.OnClickListener
+                    bindView.testClick.setOnClickListener(click)
+                },
+                {
+                    Log.e("TAG", "编译失败")
+                }
+            )
 ```
