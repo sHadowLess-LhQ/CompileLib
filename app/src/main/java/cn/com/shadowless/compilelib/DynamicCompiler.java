@@ -1,5 +1,6 @@
 package cn.com.shadowless.compilelib;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
@@ -87,6 +88,9 @@ public final class DynamicCompiler {
      * @param owner          the owner
      */
     public DynamicCompiler(Context context, String compileDexPath, String cachePath, boolean hasCompileLog, LifecycleOwner owner) {
+        if (!isDxAvailable()) {
+            throw new UnsupportedOperationException("当前环境无DX工具类，无法进行动态编译");
+        }
         String tempCachePath;
         this.context = context;
         this.hasCompileLog = hasCompileLog;
@@ -109,6 +113,23 @@ public final class DynamicCompiler {
             throw new RuntimeException("缓存路径和dex编译路径不能一致");
         }
         this.statueData = new MutableLiveData<>();
+    }
+
+
+    /**
+     * is Dx Available.
+     *
+     * @return the available
+     */
+    @SuppressLint("PrivateApi")
+    private boolean isDxAvailable() {
+        try {
+            ClassLoader loader = getLocalClassLoader();
+            loader.loadClass("com.android.dx.command.Main");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     /**
