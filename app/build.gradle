@@ -35,5 +35,5 @@ dependencies {
     api 'io.reactivex.rxjava3:rxandroid:3.0.2'
     api 'io.reactivex.rxjava3:rxjava:3.1.8'
     api 'com.github.liujingxing.rxlife:rxlife-rxjava3:2.2.2'
-    api 'org.codehaus.janino:janino:3.1.6'
+    api 'org.codehaus.janino:janino:3.1.12'
 }
